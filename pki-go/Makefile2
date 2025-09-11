@@ -1,0 +1,54 @@
+# Makefile for docker-compose build/release
+
+VERSION ?= 1.0.0
+DOCKER_USER = sirajudheenam
+
+SERVICES = server client
+
+.PHONY: build tag push release up down logs clean
+
+## Build all images with version tag
+build:
+	@for svc in $(SERVICES); do \
+		echo "==> Building $$svc"; \
+		docker compose build $$svc ; \
+		docker tag $$(docker compose images -q $$svc) $(DOCKER_USER)/go-mtls-$$svc:$(VERSION) ; \
+	done
+
+## Tag images also as :latest
+tag:
+	@for svc in $(SERVICES); do \
+		echo "==> Tagging go-mtls-$$svc:latest"; \
+		docker tag $(DOCKER_USER)/go-mtls-$$svc:$(VERSION) $(DOCKER_USER)/go-mtls-$$svc:latest ; \
+	done
+
+## Push both version and latest
+push:
+	@for svc in $(SERVICES); do \
+		echo "==> Pushing go-mtls-$$svc:$(VERSION) and latest"; \
+		docker push $(DOCKER_USER)/go-mtls-$$svc:$(VERSION) ; \
+		docker push $(DOCKER_USER)/go-mtls-$$svc:latest ; \
+	done
+
+## Shortcut: build + tag + push
+release: build tag push
+	@echo "✅ Release complete: $(VERSION) + latest"
+
+## Run services in background
+up:
+	docker compose up -d
+
+## Stop services
+down:
+	docker compose down
+
+## Tail logs
+logs:
+	docker compose logs -f
+
+## Remove local images
+clean:
+	@for svc in $(SERVICES); do \
+		echo "==> Removing local image go-mtls-$$svc"; \
+		docker rmi -f $(DOCKER_USER)/go-mtls-$$svc:$(VERSION) $(DOCKER_USER)/go-mtls-$$svc:latest || true ; \
+	done

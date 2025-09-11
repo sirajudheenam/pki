@@ -12,19 +12,23 @@ import (
 
 func main() {
 	// Load server cert + key
-	// cert, err := tls.LoadX509KeyPair("certs/server.cert.pem", "certs/server.key.pem")
-	cert, err := tls.LoadX509KeyPair("certs/server.chain.pem", "certs/server.key.pem")
+	cert, err := tls.LoadX509KeyPair("certs/server/server.chain.pem", "certs/server/server.key.pem")
 	if err != nil {
 		log.Fatal("Failed loading server cert/key:", err)
 	}
 
 	// Load Root CA (trust chain for client certs)
-	caCert, err := os.ReadFile("certs/root.cert.pem")
+	caCert, err := os.ReadFile("certs/server/root.cert.pem")
+	if err != nil {
+		log.Fatal(err)
+	}
+	interCert, err := os.ReadFile("certs/server/intermediate.cert.pem")
 	if err != nil {
 		log.Fatal(err)
 	}
 	caCertPool := x509.NewCertPool()
 	caCertPool.AppendCertsFromPEM(caCert)
+	caCertPool.AppendCertsFromPEM(interCert)
 
 	// TLS config: require client cert
 	tlsConfig := &tls.Config{

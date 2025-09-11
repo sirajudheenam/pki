@@ -1,0 +1,43 @@
+# Makefile
+VERSION ?= 1.0.0
+DOCKER_USER = sirajudheenam
+
+# IMAGES = go-mtls-server go-mtls-client
+
+IMAGES = server client
+IMAGE_PREFIX = go-mtls-
+
+.PHONY: build tag push release clean
+
+## Build all images with version tag
+build:
+	@for img in $(IMAGES); do \
+		echo "==> Building $(IMAGE_PREFIX)$$img:$(VERSION)"; \
+		docker build -t $(DOCKER_USER)/go-mtls-$$img:$(VERSION) -f Dockerfile.$$img . ; \
+	done
+
+## Tag images also as :latest
+tag:
+	@for img in $(IMAGES); do \
+		echo "==> Tagging $(IMAGE_PREFIX)$$img:latest"; \
+		docker tag $(DOCKER_USER)/$(IMAGE_PREFIX)$$img:$(VERSION) $(DOCKER_USER)/$(IMAGE_PREFIX)$$img:latest ; \
+	done
+
+## Push both version and latest
+push:
+	@for img in $(IMAGES); do \
+		echo "==> Pushing $(IMAGE_PREFIX)$$img:$(VERSION) and latest"; \
+		docker push $(DOCKER_USER)/$(IMAGE_PREFIX)$$img:$(VERSION) ; \
+		docker push $(DOCKER_USER)/$(IMAGE_PREFIX)$$img:latest ; \
+	done
+
+## Shortcut: build + tag + push
+release: build tag push
+	@echo "✅ Release complete: $(VERSION) + latest"
+
+## Remove local images
+clean:
+	@for img in $(IMAGES); do \
+		echo "==> Removing local image $$img"; \
+		docker rmi -f $(DOCKER_USER)/$(IMAGE_PREFIX)$$img:$(VERSION) $(DOCKER_USER)/$(IMAGE_PREFIX)$$img:latest || true ; \
+	done

@@ -1,4 +1,3 @@
-// client.go
 package main
 
 import (
@@ -12,17 +11,24 @@ import (
 )
 
 func main() {
+	// Allow server URL override via env var
+	serverURL := os.Getenv("SERVER_URL")
+	if serverURL == "" {
+		serverURL = "https://localhost:8443/hello"
+	}
+
 	// Load client cert + key
-	cert, err := tls.LoadX509KeyPair("certs/client.cert.pem", "certs/client.key.pem")
+	cert, err := tls.LoadX509KeyPair("certs/client/client.cert.pem", "certs/client/client.key.pem")
 	if err != nil {
 		log.Fatal("Failed loading client cert/key:", err)
 	}
 
-	// Load Root CA (to trust server’s cert)
-	caCert, err := os.ReadFile("certs/inter-root-combined.cert.pem")
+	// Load CA bundle (root + intermediate)
+	caCert, err := os.ReadFile("certs/client/inter-root-combined.cert.pem")
 	if err != nil {
 		log.Fatal(err)
 	}
+
 	caCertPool := x509.NewCertPool()
 	caCertPool.AppendCertsFromPEM(caCert)
 
@@ -30,20 +36,22 @@ func main() {
 	tlsConfig := &tls.Config{
 		Certificates:       []tls.Certificate{cert},
 		RootCAs:            caCertPool,
-		InsecureSkipVerify: false,
+		InsecureSkipVerify: false, // enforce validation
+		MinVersion:         tls.VersionTLS12,
 	}
 
+	// HTTPS client
 	client := &http.Client{
 		Transport: &http.Transport{TLSClientConfig: tlsConfig},
 	}
 
-	// Call server
-	resp, err := client.Get("https://localhost:8443/hello")
+	// Send request
+	resp, err := client.Get(serverURL)
 	if err != nil {
-		log.Fatal("Request failed:", err)
+		log.Fatalf("Request failed: %v", err)
 	}
 	defer resp.Body.Close()
 
 	body, _ := io.ReadAll(resp.Body)
-	fmt.Println("Server response:", string(body))
+	fmt.Printf("Server response: %s\n", body)
 }

@@ -1,0 +1,22 @@
+services:
+  server:
+    build: 
+      context: .
+      dockerfile: Dockerfile.server
+    image: sirajudheenam/go-mtls-server:1.0.0
+    container_name: go-mtls-server
+    ports:
+      - "8443:8443"
+    volumes:
+      - ./certs/server:/app/certs/server:ro
+
+  client:
+    build:
+      context: .
+      dockerfile: Dockerfile.client
+    image: sirajudheenam/go-mtls-client:1.0.0
+    container_name: go-mtls-client
+    depends_on:
+      - server
+    volumes:
+      - ./certs/client:/app/certs/client:ro
