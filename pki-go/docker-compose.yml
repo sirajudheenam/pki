@@ -9,6 +9,7 @@ services:
       - "8443:8443"
     volumes:
       - ./certs/server:/app/certs/server:ro
+    restart: unless-stopped
 
   client:
     build:
@@ -20,3 +21,7 @@ services:
       - server
     volumes:
       - ./certs/client:/app/certs/client:ro
+    environment:
+      SERVER_URL: "https://go-mtls-server:8443"  # dynamic server URL
+      CLIENT_CERTS: "/app/certs/client"          # dynamic cert path
+    command: ["./client"]  # can be overridden at runtime

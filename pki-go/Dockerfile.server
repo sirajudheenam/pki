@@ -1,18 +1,22 @@
 # Build stage
-FROM golang:1.21-alpine AS builder
+FROM golang:1.25-alpine AS builder
 
 # Set working directory
 WORKDIR /app
 
 # Copy Go module files if you use modules (optional)
-# COPY go.mod go.sum ./
+# COPY go.mod ./
 # RUN go mod download
 
+RUN go mod init github.com/sirajudheenam/pki/pki-go
+RUN go mod tidy
+
 # Copy server code
-COPY server.go .
+# COPY server.go .
+COPY . .
 
 # Build the Go binary
-RUN go build -o server server.go
+RUN go build -o server cmd/server/main.go
 
 # Runtime stage
 FROM alpine:latest

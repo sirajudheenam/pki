@@ -17,8 +17,11 @@ spec:
     spec:
       containers:
         - name: go-mtls-client
-          image: sirajudheenam/go-mtls-client:latest
+          image: sirajudheenam/go-mtls-client:1.0.1
           imagePullPolicy: IfNotPresent
+          env:
+            - name: SERVER_URL
+              value: "https://go-mtls-server:8443"
           volumeMounts:
             - name: client-certs
               mountPath: /app/certs/client
@@ -46,6 +49,10 @@ spec:
       containers:
         - name: go-mtls-client
           image: sirajudheenam/go-mtls-client:latest
+          imagePullPolicy: Always
+          env:
+            - name: SERVER_URL
+              value: "https://go-mtls-server:8443"
           volumeMounts:
             - name: client-certs
               mountPath: /app/certs/client

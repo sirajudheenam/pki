@@ -1,5 +1,5 @@
 # Makefile
-VERSION ?= 1.0.0
+VERSION ?= 1.0.1
 DOCKER_USER = sirajudheenam
 
 # IMAGES = go-mtls-server go-mtls-client
