@@ -19,7 +19,7 @@ script | purpose
 -------| -------
 [scripts/container.sh](scripts/container.sh) | to perform container operations
 [scripts/create-certs.sh](scripts/create-certs.sh) | to create root CA server client certs
-[scripts/create-certs-k8s.sh](scripts/create-certs-k8s.sh) | to create root CA server client certs for k8s containers with hostname other than localhost. e.g., a host entry `echo "127.0.0.1   go-mtls-server" | sudo tee -a /etc/hosts` on macOS maps this well.
+[scripts/create-certs-k8s.sh](scripts/create-certs-k8s.sh) | to create root CA server client certs for k8s containers with hostname other than localhost.
 [scripts/kill_server.sh](scripts/kill_server.sh) | to kill when server stuck and port occupied
 [scripts/run-client.sh](scripts/run-client.sh) | to run openssl client to make TLS connection
 [scripts/run-server.sh](scripts/run-server.sh) | to run openssl server to accept client connections
