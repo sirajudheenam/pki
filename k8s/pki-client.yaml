@@ -1,0 +1,58 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: go-mtls-client
+  namespace: default
+  labels:
+    app: go-mtls-client
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: go-mtls-client
+  template:
+    metadata:
+      labels:
+        app: go-mtls-client
+    spec:
+      containers:
+        - name: go-mtls-client
+          image: sirajudheenam/go-mtls-client:latest
+          imagePullPolicy: IfNotPresent
+          volumeMounts:
+            - name: client-certs
+              mountPath: /app/certs/client
+              readOnly: true
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "64Mi"
+            limits:
+              cpu: "200m"
+              memory: "128Mi"
+      volumes:
+        - name: client-certs
+          secret:
+            secretName: go-mtls-client-certs
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: go-mtls-client-job
+  namespace: default
+spec:
+  template:
+    spec:
+      containers:
+        - name: go-mtls-client
+          image: sirajudheenam/go-mtls-client:latest
+          volumeMounts:
+            - name: client-certs
+              mountPath: /app/certs/client
+              readOnly: true
+      restartPolicy: Never
+      volumes:
+        - name: client-certs
+          secret:
+            secretName: go-mtls-client-certs
+  backoffLimit: 1

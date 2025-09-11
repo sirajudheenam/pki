@@ -147,3 +147,87 @@ docker network rm mtls-net
 # build using docker-compose
 docker compose build
 ```
+
+## Deploy it in k8s
+
+```bash
+cd pki-go/certs/server
+kubectl create secret generic go-mtls-server-certs \
+  --from-file=server.chain.pem \
+  --from-file=server.key.pem \
+  --from-file=root.cert.pem \
+  --from-file=intermediate.cert.pem
+# Output
+# secret/go-mtls-server-certs created
+
+cd ../../../k8s
+kubectl create -f pki-server.yaml
+
+# Output
+# deployment.apps/go-mtls-server created
+# service/go-mtls-server-service created
+# ingress.networking.k8s.io/go-mtls-server-ingress created
+
+
+# on minikube setup on macOS with Docker driver
+# run this on separate terminal
+kubectl port-forward svc/go-mtls-server-service 8443:8443
+
+# run from macOS
+
+cd ../pki-go
+go run client.go
+# Output
+# Server response: Hello, client1!
+
+curl -vk https://localhost:8443/hello \
+  --cert ./certs/client/client.cert.pem \
+  --key ./certs/client/client.key.pem \
+  --cacert ./certs/client/root.cert.pem
+
+# Output 
+# Hello, client1!
+
+# Hurray!!  It works !
+
+
+
+# # client
+# cd pki-go/certs/client
+# kubectl create secret generic go-mtls-client-certs \
+#   --from-file=client.cert.pem \
+#   --from-file=client.key.pem \
+#   --from-file=inter-root-combined.cert.pem \
+#   --from-file=root.cert.pem
+
+# Output
+# secret/go-mtls-client-certs created
+
+# cd ../../../k8s
+# kubectl create -f pki-client.yaml
+
+# Output
+# deployment.apps/go-mtls-client created
+# job.batch/go-mtls-client-job created
+
+# # troubleshooting
+# kubectl port-forward svc/go-mtls-server-service 8443:8443
+
+# curl -vk https://localhost:8443/hello \
+#   --cert ./certs/client/client.cert.pem \
+#   --key ./certs/client/client.key.pem \
+#   --cacert ./certs/client/root.cert.pem
+
+# works with port forwarding 
+
+# Troubleshoot on minikube to run from our client containter
+# TODO: 
+# Generate cert for Pod Hostname then try
+
+```
+
+We have successfully deployed the app in Docker and k8s
+
+What is next?
+
+Perhaps create a helm chart for it.
