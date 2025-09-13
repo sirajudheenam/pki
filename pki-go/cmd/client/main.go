@@ -10,33 +10,51 @@ import (
 
 func main() {
 	// Default values
-	defaultURL := "https://localhost:8443"
+	defaultServerName := "go-mtls-server-service"
+	defaultPort := "8443"
+	defaultServerRootPath := "/hello"
 	defaultCertPath := "./certs/client"
 
 	// Override defaults with environment variables if set
-	if envURL := os.Getenv("SERVER_URL"); envURL != "" {
-		defaultURL = envURL
+	if envServerName := os.Getenv("SERVER_NAME"); envServerName != "" {
+		log.Println("Using env: SERVER_NAME: ", envServerName)
+		defaultServerName = envServerName
 	}
-	if envCert := os.Getenv("CLIENT_CERTS"); envCert != "" {
+	if envServerPort := os.Getenv("SERVER_PORT"); envServerPort != "" {
+		log.Println("Using env: SERVER_PORT: ", envServerPort)
+		defaultPort = envServerPort
+	}
+	if envServerRootPath := os.Getenv("SERVER_ROOT_PATH"); envServerRootPath != "" {
+		log.Println("Using env: SERVER_ROOT_PATH: ", envServerRootPath)
+		defaultServerRootPath = envServerRootPath
+	}
+	if envCert := os.Getenv("CERT_PATH"); envCert != "" {
 		defaultCertPath = envCert
 	}
-
 	// Command-line flags (take precedence over env vars)
-	serverURL := flag.String("url", defaultURL, "Server base URL")
-	certPath := flag.String("certs", defaultCertPath, "Path to client certificates")
+
+	serverName := flag.String("server-name", defaultServerName, "Server name")
+	serverPort := flag.String("server-port", defaultPort, "Server port")
+	serverRootPath := flag.String("server-root-path", defaultServerRootPath, "Server root path")
+	certPath := flag.String("cert-path", defaultCertPath, "Path to client certificates")
 	flag.Parse()
 
+	serverURL := "https://" + *serverName + ":" + *serverPort + *serverRootPath
+	log.Println("Connecting to server at:", serverURL)
+
+	log.Println("Certificate Path: ", *certPath)
+
 	// Create client
-	c, err := client.NewClient(*serverURL, *certPath)
+	c, err := client.NewClient(serverURL, *certPath)
 	if err != nil {
-		log.Fatal("Failed to create client:", err)
+		log.Fatal("\n Failed to create client:", err)
 	}
 
 	// Make request
 	resp, err := c.DoRequest()
 	if err != nil {
-		log.Fatal("Request failed:", err)
+		log.Fatal("\n Request failed:", err)
 	}
 
-	log.Println("Server response:", resp)
+	log.Println("Server Responded with : ", resp)
 }

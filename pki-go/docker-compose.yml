@@ -1,9 +1,9 @@
 services:
   server:
-    build: 
+    build:
       context: .
       dockerfile: Dockerfile.server
-    image: sirajudheenam/go-mtls-server:1.0.0
+    image: sirajudheenam/go-mtls-server:${VERSION}
     container_name: go-mtls-server
     ports:
       - "8443:8443"
@@ -15,13 +15,15 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.client
-    image: sirajudheenam/go-mtls-client:1.0.0
+    image: sirajudheenam/go-mtls-client:${VERSION}
     container_name: go-mtls-client
     depends_on:
       - server
     volumes:
       - ./certs/client:/app/certs/client:ro
     environment:
-      SERVER_URL: "https://go-mtls-server:8443"  # dynamic server URL
-      CLIENT_CERTS: "/app/certs/client"          # dynamic cert path
-    command: ["./client"]  # can be overridden at runtime
+      SERVER_NAME: ${SERVER_NAME}
+      SERVER_PORT: ${SERVER_PORT}
+      SERVER_ROOT_PATH: ${SERVER_ROOT_PATH}
+      CLIENT_CERTS: ${CLIENT_CERTS}
+    # command:  "./client"

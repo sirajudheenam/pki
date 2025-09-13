@@ -30,7 +30,3 @@ case "$1" in
     echo "Usage: $0 [build-server|build-client|run-server|run-client|cleanup|rmi]"
     ;;
 esac
-
-
-# docker build -f Dockerfile.server -t sirajudheenam/go-mtls-server .
-# docker build -f Dockerfile.client -t sirajudheenam/go-mtls-client .

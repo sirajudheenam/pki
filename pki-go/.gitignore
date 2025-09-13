@@ -1,3 +1,4 @@
+demo-pki
 internal/client/client_self_signed_test.go
 internal/server/server_self_signed_test.go
 internal/server/test_helpers.go

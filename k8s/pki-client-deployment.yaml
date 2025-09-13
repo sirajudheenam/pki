@@ -1,0 +1,47 @@
+# DEployment is not needed as we are using Job to run the client once and exit
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: go-mtls-client
+  namespace: default
+  labels:
+    app: go-mtls-client
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: go-mtls-client
+  template:
+    metadata:
+      labels:
+        app: go-mtls-client
+    spec:
+      containers:
+        - name: go-mtls-client
+          image: sirajudheenam/go-mtls-client:latest
+          imagePullPolicy: Always
+          env:
+            - name: SERVER_NAME
+              value: "go-mtls-server-service"
+            - name: SERVER_PORT
+              value: "8443"
+            - name: SERVER_ROOT_PATH
+              value: "/hello"
+            - name: CERT_PATH
+              value: "/app/certs/client"
+          volumeMounts:
+            - name: client-certs
+              mountPath: /app/certs/client
+              readOnly: true
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "64Mi"
+            limits:
+              cpu: "200m"
+              memory: "128Mi"
+      volumes:
+        - name: client-certs
+          secret:
+            secretName: go-mtls-client-certs
+      restartPolicy: Always

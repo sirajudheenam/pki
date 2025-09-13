@@ -1,0 +1,70 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: go-mtls-client-job
+  namespace: default
+spec:
+  template:
+    spec:
+      containers:
+        - name: go-mtls-client
+          image: sirajudheenam/go-mtls-client:latest
+          imagePullPolicy: Always
+          env:
+            - name: SERVER_NAME
+              value: "go-mtls-server-service"
+            - name: SERVER_PORT
+              value: "8443"
+            - name: SERVER_ROOT_PATH
+              value: "/hello"
+            - name: CERT_PATH
+              value: "/app/certs/client"
+          volumeMounts:
+            - name: client-certs
+              mountPath: /app/certs/client
+              readOnly: true
+      restartPolicy: Never
+      volumes:
+        - name: client-certs
+          secret:
+            secretName: go-mtls-client-certs
+  backoffLimit: 1
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: go-mtls-client-cron
+  namespace: default
+spec:
+  # min hour day month day-of-week
+  # schedule: "0 0 * * *"  # every day at midnight
+  schedule: "*/5 * * * *"  # every 5 minutes
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+            - name: go-mtls-client
+              image: sirajudheenam/go-mtls-client:latest
+              imagePullPolicy: Always
+              env:
+                - name: SERVER_NAME
+                  value: "go-mtls-server-service"
+                - name: SERVER_PORT
+                  value: "8443"
+                - name: SERVER_ROOT_PATH
+                  value: "/hello"
+                - name: CERT_PATH
+                  value: "/app/certs/client"
+              volumeMounts:
+                - name: client-certs
+                  mountPath: /app/certs/client
+                  readOnly: true
+          restartPolicy: Never
+          volumes:
+            - name: client-certs
+              secret:
+                secretName: go-mtls-client-certs
+      backoffLimit: 1
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 1

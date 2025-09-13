@@ -48,7 +48,8 @@ func NewClient(addr, certDir string) (*Client, error) {
 
 // DoRequest calls /hello endpoint
 func (c *Client) DoRequest() (string, error) {
-	resp, err := c.http.Get(c.Addr + "/hello")
+	// resp, err := c.http.Get(c.Addr + "/hello")
+	resp, err := c.http.Get(c.Addr)
 	if err != nil {
 		return "", err
 	}

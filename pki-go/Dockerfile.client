@@ -16,5 +16,6 @@ WORKDIR /app
 COPY --from=builder /app/client .
 COPY certs/client ./certs/client
 
-CMD ["./client"]
+# CMD ["sh", "-c", "./client --server-name ${SERVER_NAME} --server-port ${SERVER_PORT} --server-root-path ${SERVER_ROOT_PATH} --cert-path ${CERT_PATH}"]
 
+CMD ["./client"]

@@ -5,13 +5,10 @@ This Repo is a side-effect of my pursuit to enhance my understanding of PKI usin
 We shall create certificates manually first to understand what does it do.
 
 
-```bash
-go mod init github.com/sirajudheenam/pki
-go mod tidy
-```
-## Create Ceritifcates
+## Create Ceritifcates for local development
 
 ```bash
+# This creates certificates for `localhost`
 bash scripts/create-certs.sh
 ```
 
@@ -24,8 +21,6 @@ script | purpose
 [scripts/run-client.sh](scripts/run-client.sh) | to run openssl client to make TLS connection
 [scripts/run-server.sh](scripts/run-server.sh) | to run openssl server to accept client connections
 
-
-
 ## pki-go - Go Client Server App using TLS
 
 ```bash
@@ -37,50 +32,49 @@ go mod tidy
 ## Run Server on different terminal
 
 ```bash
-go run server.go
+go run cmd/server/main.go
 ```
 
 ## Run Client on different terminal
 
 ```bash
-SERVER_URL=https://localhost:8443/hello go run client.go
+# watch here SERVER_NAME is localhost
+SERVER_NAME=localhost SERVER_PORT=8443 SERVER_ROOT_PATH=/hello CLIENT_CERTS=./certs/client go run cmd/client/main.go
 ```
 
 ## Run tests
+
 ```bash
 go test ./internal/... -v
+
+# Output 
+# ok      github.com/sirajudheenam/pki/pki-go/internal/client     0.705s
+# ok      github.com/sirajudheenam/pki/pki-go/internal/server     0.878s
+
 ```
 
-## Create Docker Image
+## Create Docker Image for Server
 
 ```bash
 
 # Build image
-docker build -f Dockerfile.server -t sirajudheenam/go-mtls-server .
+docker build -f Dockerfile.server -t sirajudheenam/go-mtls-server:1.0.0 -t sirajudheenam/go-mtls-server:local .
 
 # Run container
-docker run -d --name go-mtls-server -p 8443:8443 sirajudheenam/go-mtls-server
-
-# Run container
-# docker run --rm -p 8443:8443 go-mtls-server 
-
-# Build image
-docker build -f Dockerfile.client -t sirajudheenam/go-mtls-client:1.0.0 -t sirajudheenam/go-mtls-client:latest .
+docker run --rm --name go-mtls-server \
+  --network host -v $(pwd)/certs/server:/app/certs/server:ro \
+  -p 8443:8443 sirajudheenam/go-mtls-server:local
 
 # Tag your explicitely with different tag if needed, though above step does that.
-# Server
-docker tag sirajudheenam/go-mtls-server:1.0.0 sirajudheenam/go-mtls-server:latest
-# Client
-docker tag sirajudheenam/go-mtls-client:1.0.0 sirajudheenam/go-mtls-client:latest
+docker tag sirajudheenam/go-mtls-server:1.0.0 sirajudheenam/go-mtls-server:local
 
+# Push Container
 docker push sirajudheenam/go-mtls-server:1.0.0
-docker push sirajudheenam/go-mtls-server:latest
-docker push sirajudheenam/go-mtls-client:1.0.0
-docker push sirajudheenam/go-mtls-client:latest
+docker push sirajudheenam/go-mtls-server:local
 
 ```
 
-## Run server in a docker container
+## Run server in a docker container locally
 
 ```bash
 docker run --rm \
@@ -89,19 +83,39 @@ docker run --rm \
   sirajudheenam/go-mtls-server
 ```
 
-```bash
-## Run client as docker container
+## Create Docker Image for Client
 
+```bash
+# Build image
+docker build -f Dockerfile.client -t sirajudheenam/go-mtls-client:local .
+# Tag your explicitely with different tag if needed, though above step does that.
+# docker tag sirajudheenam/go-mtls-client:1.0.0 sirajudheenam/go-mtls-client:local
+
+# since this is local build, there is no need to push
+# docker push sirajudheenam/go-mtls-client:local
+
+```
+
+## Run client as docker container to test locally
+
+```bash
 docker run --rm \
   -v $(pwd)/certs/client:/app/certs/client:ro \
   --network host \
-  sirajudheenam/go-mtls-client
+  -e SERVER_NAME=localhost -e SERVER_PORT=8443 \
+  -e SERVER_ROOT_PATH=/hello -e CLIENT_CERTS=./certs/client/ \
+  sirajudheenam/go-mtls-client:local
 
 # Output 
-Server response: Hello, client1!
+# Server response: Hello, client1!
+```
 
-# use public curl container image and run
+## Test public curl container image and run
+
+```bash
 # below needs /etc/host entry on macOS 'localhost host.docker.internal'
+echo "localhost   host.docker.internal" | sudo tee -a /etc/hosts
+
 docker run --rm \
   -v $(pwd)/certs/client:/certs/client:ro \
   --network host \
@@ -124,33 +138,15 @@ docker run --rm \
 
 ```
 
-## Using `docker-compose`
-
-```bash
-# Instead use docker-compose
-docker-compose up --build
-```
-
-## Using `Makefile`
+## Using `Makefile` with `docker-compose`
 
 ```bash
 # Build only:
-make build VERSION=1.0.1
+make build VERSION=local
 # Build + tag + push:
-make release VERSION=1.0.1
+make release VERSION=local
 # Clean up local images
-make clean VERSION=1.0.1
-```
-
-## Using `Makefile2` with docker-compose
-
-```bash
-# Build only:
-make build VERSION=1.0.1
-# Build + tag + push:
-make release VERSION=1.0.1
-# Clean up local images
-make clean VERSION=1.0.1
+make clean VERSION=local
 # Start services
 make up
 # Stop services
@@ -160,25 +156,81 @@ make logs
 
 ```
 
-## Deploy it in k8s
+## Deploy in kubernetes cluster
+
+### Prerequisites
+
+- minikube running k8s locally
+- access to any cloud
+
+In order to run this on minikube or Cloud, let us use `go-mtls-server` as `SERVER_NAME`
+
+### Generate Certificates with `go-mtls-server` as hostname
 
 ```bash
-cd pki-go/certs/server
+
+bash scripts/create-certs-k8s.sh
+```
+
+### Test code locally
+
+```bash
+cd pki-go
+
+# don't close the terminal where this is running
+go run cmd/server/main.go
+
+# on another terminal 
+SERVER_NAME=go-mtls-server SERVER_PORT=8443 SERVER_ROOT_PATH=/hello go run cmd/client/main.go
+
+```
+
+### Build and push docker images after testing locally
+
+```bash
+# Build image
+docker build -f Dockerfile.client -t sirajudheenam/go-mtls-client:1.0.0 -t sirajudheenam/go-mtls-client:latest .
+# Tag your explicitely with different tag if needed, though above step does that.
+# docker tag sirajudheenam/go-mtls-client:1.0.0 sirajudheenam/go-mtls-client:latest
+
+# since this is local build, there is no need to push
+docker push sirajudheenam/go-mtls-client:1.0.0
+docker push sirajudheenam/go-mtls-client:latest
+
+```
+
+### Deploy it k8s
+
+```bash
+# # server
+cd pki-go
+# delete if you have secret
+# kubectl delete secret go-mtls-server-certs
+# kubectl delete secret go-mtls-client-certs
 kubectl create secret generic go-mtls-server-certs \
-  --from-file=server.chain.pem \
-  --from-file=server.key.pem \
-  --from-file=root.cert.pem \
-  --from-file=intermediate.cert.pem
+  --from-file=server.chain.pem=./certs/server/server.chain.pem \
+  --from-file=server.key.pem=./certs/server/server.key.pem \
+  --from-file=root.cert.pem=./certs/server/root.cert.pem \
+  --from-file=intermediate.cert.pem=./certs/server/intermediate.cert.pem
 # Output
 # secret/go-mtls-server-certs created
 
-cd ../../../k8s
-kubectl create -f pki-server.yaml
+kubectl create secret generic go-mtls-client-certs \
+  --from-file=client.cert.pem=./certs/client/client.cert.pem \
+  --from-file=client.key.pem=./certs/client/client.key.pem \
+  --from-file=inter-root-combined.cert.pem=./certs/client/inter-root-combined.cert.pem \
+  --from-file=root.cert.pem=./certs/server/root.cert.pem
 
 # Output
-# deployment.apps/go-mtls-server created
-# service/go-mtls-server-service created
-# ingress.networking.k8s.io/go-mtls-server-ingress created
+# secret/go-mtls-client-certs created
+
+cd ../k8s
+# clean up first 
+kubectl delete -f .
+# create 
+kubectl create -f .
+
+# Output
 
 
 # on minikube setup on macOS with Docker driver
@@ -190,16 +242,13 @@ kubectl port-forward svc/go-mtls-server-service 8443:8443
 # Forwarding from [::1]:8443 -> 8443
 # Handling connection for 8443
 
-# run from macOS
-
-cd ../pki-go
-SERVER_URL=https://go-mtls-server:8443 go run cmd/client/main.go
 
 # make sure you have host entry at /etc/hosts as below
 
-# check with cat /etc/hosts | grep go-mtls-server
+# check with 
+cat /etc/hosts | grep go-mtls-server
 # 127.0.0.1   go-mtls-server
-# else 
+# if doesn't exist run
 echo "127.0.0.1   go-mtls-server" | sudo tee -a /etc/hosts
 
 
@@ -234,19 +283,10 @@ docker run --rm \
     --cacert /certs/client/root.cert.pem
 
 
-# # client
-cd pki-go
-kubectl create secret generic go-mtls-client-certs \
-  --from-file=client.cert.pem=./certs/client/client.cert.pem \
-  --from-file=client.key.pem=./certs/client/client.key.pem \
-  --from-file=inter-root-combined.cert.pem=./certs/client/inter-root-combined.cert.pem \
-  --from-file=root.cert.pem=../demo-pki/root/root.cert.pem
-
-# Output
-# secret/go-mtls-client-certs created
-
 cd ../k8s
-kubectl create -f .
+kubectl delete -f pki-client-deployment.yaml 
+
+kubectl create -f pki-client-deployment.yaml 
 
 # Output
 # deployment.apps/go-mtls-client created
@@ -259,3 +299,4 @@ We have successfully deployed the app in Docker and k8s
 What is next?
 
 Perhaps create a helm chart for it.
+

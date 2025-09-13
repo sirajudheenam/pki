@@ -60,13 +60,13 @@ localityName_default        = Berlin
 organizationName            = Organization Name
 organizationName_default    = DemoCA
 commonName                  = Common Name
-CN                          = go-mtls-server
+CN                          = go-mtls-server-service
 
 [ req_ext ]
 subjectAltName = @alt_names
 
 [ alt_names ]
-DNS.1 = go-mtls-server
+DNS.1 = go-mtls-server-service
 
 [ v3_ca ]
 basicConstraints = critical,CA:TRUE
@@ -148,7 +148,7 @@ create_server_cert() {
 
   openssl req -new -key $PKI_DIR/server/server.key.pem \
     -out $PKI_DIR/server/server.csr.pem \
-    -subj "/C=DE/ST=Berlin/L=Berlin/O=DemoServer/OU=IT/CN=go-mtls-server" \
+    -subj "/C=DE/ST=Berlin/L=Berlin/O=DemoServer/OU=IT/CN=go-mtls-server-service" \
     -config $PKI_DIR/openssl.cnf -extensions req_ext
 
   # Sign server certificate with intermediate CA (server extensions)
@@ -265,7 +265,7 @@ run_server_client_test() {
   echo "You can run:"
   echo "openssl s_server -accept 4433 -www -cert $PKI_DIR/server/server.chain.pem -key $PKI_DIR/server/server.key.pem"
   echo "Then test with:"
-  echo "openssl s_client -connect go-mtls-server:4433 -CAfile $PKI_DIR/root/root.cert.pem"
+  echo "openssl s_client -connect go-mtls-server-service:4433 -CAfile $PKI_DIR/root/root.cert.pem"
   # If any previous openssl s_server is running, kill it
   # PID=$(pgrep -f "openssl s_server -accept 4433")
   # if [ -n "$PID" ]; then
@@ -292,12 +292,12 @@ run_server_client_test() {
   cp $PKI_DIR/client/inter-root-combined.cert.pem $TEST_CLIENT_DIR
   echo "Combined Cert is copied to Go client:"
   echo "Running client test..."
-  # openssl s_client -connect go-mtls-server:4433 -CAfile $PKI_DIR/test/inter-root.cert.pem </dev/null
-  # echo "Q" | openssl s_client -connect go-mtls-server:4433 -CAfile $PKI_DIR/root/root.cert.pem 
+  # openssl s_client -connect go-mtls-server-service:4433 -CAfile $PKI_DIR/test/inter-root.cert.pem </dev/null
+  # echo "Q" | openssl s_client -connect go-mtls-server-service:4433 -CAfile $PKI_DIR/root/root.cert.pem 
   # gives Verify return code: 21 (unable to verify the first certificate)
   # Now we are making the client to trust both root and intermediate by combining them.
   # Run client test (send a dummy "Q" so server stays alive long enough)
-  echo "Q" | openssl s_client -connect go-mtls-server:4433 -CAfile $PKI_DIR/client/inter-root-combined.cert.pem
+  echo "Q" | openssl s_client -connect go-mtls-server-service:4433 -CAfile $PKI_DIR/client/inter-root-combined.cert.pem
   # Look for "Verify return code: 0 (ok)" in output
 
   # Kill server after test

@@ -1,9 +1,6 @@
 # Makefile
 VERSION ?= 1.0.1
 DOCKER_USER = sirajudheenam
-
-# IMAGES = go-mtls-server go-mtls-client
-
 IMAGES = server client
 IMAGE_PREFIX = go-mtls-
 
@@ -40,4 +37,30 @@ clean:
 	@for img in $(IMAGES); do \
 		echo "==> Removing local image $$img"; \
 		docker rmi -f $(DOCKER_USER)/$(IMAGE_PREFIX)$$img:$(VERSION) $(DOCKER_USER)/$(IMAGE_PREFIX)$$img:latest || true ; \
+	done
+
+# prune dangling containers
+prune:
+	docker container prune -f
+# 	docker image prune -f
+# 	docker volume prune -f
+# 	docker network prune -f
+
+## Run services in background
+up:
+	docker compose up -d
+
+## Stop services
+down:
+	docker compose down
+
+## Tail logs
+logs:
+	docker compose logs -f
+
+## Remove local images
+clean:
+	@for svc in $(SERVICES); do \
+		echo "==> Removing local image go-mtls-$$svc"; \
+		docker rmi -f $(DOCKER_USER)/go-mtls-$$svc:$(VERSION) $(DOCKER_USER)/go-mtls-$$svc:latest || true ; \
 	done

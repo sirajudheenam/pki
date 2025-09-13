@@ -24,7 +24,7 @@ func TestServerStartStop(t *testing.T) {
 	time.Sleep(500 * time.Millisecond)
 
 	// Try a simple GET request using default client with InsecureSkipVerify
-	resp, err := http.Get("https://localhost:8444/hello")
+	resp, err := http.Get("https://go-mtls-server:8444/hello")
 	if err == nil {
 		defer resp.Body.Close()
 		t.Errorf("expected TLS handshake error without client cert, got %v", resp.Status)
