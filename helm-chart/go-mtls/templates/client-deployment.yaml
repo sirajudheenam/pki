@@ -1,0 +1,38 @@
+# apiVersion: apps/v1
+# kind: Deployment
+# metadata:
+#   name: go-mtls-client
+#   labels:
+#     app: go-mtls-client
+# spec:
+#   replicas: {{ .Values.client.replicas }}
+#   selector:
+#     matchLabels:
+#       app: go-mtls-client
+#   template:
+#     metadata:
+#       labels:
+#         app: go-mtls-client
+#     spec:
+#       containers:
+#         - name: go-mtls-client
+#           image: {{ .Values.client.image }}
+#           imagePullPolicy: Always
+#           env:
+#             - name: SERVER_NAME
+#               value: "go-mtls-server-service"
+#             - name: SERVER_PORT
+#               value: "{{ .Values.server.servicePort }}"
+#             - name: SERVER_ROOT_PATH
+#               value: "/hello"
+#             - name: CERT_PATH
+#               value: "/app/certs/client"
+#           volumeMounts:
+#             - name: client-certs
+#               mountPath: /app/certs/client
+#               readOnly: true
+#       volumes:
+#         - name: client-certs
+#           secret:
+#             secretName: go-mtls-client-certs
+#       restartPolicy: Always

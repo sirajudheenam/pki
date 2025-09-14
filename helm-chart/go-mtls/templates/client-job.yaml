@@ -1,0 +1,30 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: go-mtls-client-job
+spec:
+  template:
+    spec:
+      containers:
+        - name: go-mtls-client
+          image: {{ .Values.client.image }}
+          imagePullPolicy: Always
+          env:
+            - name: SERVER_NAME
+              value: "go-mtls-server-service"
+            - name: SERVER_PORT
+              value: "{{ .Values.server.servicePort }}"
+            - name: SERVER_ROOT_PATH
+              value: "/hello"
+            - name: CERT_PATH
+              value: "/app/certs/client"
+          volumeMounts:
+            - name: client-certs
+              mountPath: /app/certs/client
+              readOnly: true
+      restartPolicy: Never
+      volumes:
+        - name: client-certs
+          secret:
+            secretName: go-mtls-client-certs
+  backoffLimit: 1

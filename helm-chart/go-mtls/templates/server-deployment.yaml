@@ -1,0 +1,34 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: go-mtls-server
+  labels:
+    app: go-mtls-server
+spec:
+  replicas: {{ .Values.server.replicas }}
+  selector:
+    matchLabels:
+      app: go-mtls-server
+  template:
+    metadata:
+      labels:
+        app: go-mtls-server
+    spec:
+      containers:
+        - name: go-mtls-server
+          image: {{ .Values.server.image }}
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: {{ .Values.server.servicePort }}
+          volumeMounts:
+            - name: server-certs
+              mountPath: /app/certs/server
+              readOnly: true
+            - name: logs
+              mountPath: /app/logs
+      volumes:
+        - name: server-certs
+          secret:
+            secretName: go-mtls-server-certs
+        - name: logs
+          emptyDir: {}

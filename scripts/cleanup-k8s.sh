@@ -32,6 +32,7 @@ delete_if_exists secret go-mtls-server-certs go-mtls-client-certs
 for file in \
   "${K8s_DIR}/pki-server-deployment.yaml" \
   "${K8s_DIR}/pki-server-svc.yaml" \
+  "${K8s_DIR}/pki-server-ingress.yaml" \
   "${K8s_DIR}/pki-client-jobs.yaml" \
   "${K8s_DIR}/pki-client-deployment.yaml"; do
 
