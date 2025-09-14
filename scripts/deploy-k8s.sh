@@ -67,3 +67,34 @@ sleep 5
 
 # To verify the deployment, you can check the status of the pods
 kubectl get pods
+
+# Wait for job pod to complete
+JOB_NAME="go-mtls-client-job"
+
+echo "Waiting for Job $JOB_NAME to complete..."
+kubectl wait --for=condition=complete job/$JOB_NAME --timeout=120s
+
+# Get the name of the pod created by the Job
+POD_NAME=$(kubectl get pods --selector=job-name=$JOB_NAME \
+  --output=jsonpath='{.items[0].metadata.name}')
+
+# Show status and logs
+echo "===== Pod Status ====="
+kubectl get pod "$POD_NAME" -o wide
+
+echo "===== Pod Logs ====="
+kubectl logs "$POD_NAME"
+
+# Check CronJobs
+
+# Get the latest job name created by the cronjob
+LATEST_JOB=$(kubectl get jobs \
+  --selector=job-name \
+  --sort-by=.metadata.creationTimestamp \
+  -o jsonpath='{.items[-1].metadata.name}')
+
+# Get its pod and logs
+POD_NAME=$(kubectl get pods --selector=job-name=$LATEST_JOB \
+  -o jsonpath='{.items[0].metadata.name}')
+
+kubectl logs $POD_NAME

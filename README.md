@@ -66,7 +66,7 @@ docker run --rm --name go-mtls-server \
   -p 8443:8443 sirajudheenam/go-mtls-server:local
 
 # Tag your explicitely with different tag if needed, though above step does that.
-docker tag sirajudheenam/go-mtls-server:1.0.0 sirajudheenam/go-mtls-server:local
+# docker tag sirajudheenam/go-mtls-server:1.0.0 sirajudheenam/go-mtls-server:local
 
 # Push Container
 docker push sirajudheenam/go-mtls-server:1.0.0
@@ -161,7 +161,7 @@ make logs
 ### Prerequisites
 
 - minikube running k8s locally
-- access to any cloud
+- or access to any cloud
 
 In order to run this on minikube or Cloud, let us use `go-mtls-server` as `SERVER_NAME`
 
@@ -181,7 +181,7 @@ cd pki-go
 go run cmd/server/main.go
 
 # on another terminal 
-SERVER_NAME=go-mtls-server SERVER_PORT=8443 SERVER_ROOT_PATH=/hello go run cmd/client/main.go
+SERVER_NAME=go-mtls-server-service SERVER_PORT=8443 SERVER_ROOT_PATH=/hello go run cmd/client/main.go
 
 ```
 
@@ -189,11 +189,8 @@ SERVER_NAME=go-mtls-server SERVER_PORT=8443 SERVER_ROOT_PATH=/hello go run cmd/c
 
 ```bash
 # Build image
-docker build -f Dockerfile.client -t sirajudheenam/go-mtls-client:1.0.0 -t sirajudheenam/go-mtls-client:latest .
-# Tag your explicitely with different tag if needed, though above step does that.
-# docker tag sirajudheenam/go-mtls-client:1.0.0 sirajudheenam/go-mtls-client:latest
-
-# since this is local build, there is no need to push
+VERSION=1.0.0
+docker build -f Dockerfile.client -t sirajudheenam/go-mtls-client:${VERSION} -t sirajudheenam/go-mtls-client:latest .
 docker push sirajudheenam/go-mtls-client:1.0.0
 docker push sirajudheenam/go-mtls-client:latest
 
@@ -202,11 +199,12 @@ docker push sirajudheenam/go-mtls-client:latest
 ### Deploy it k8s
 
 ```bash
-# # server
-cd pki-go
+
 # delete if you have secret
-# kubectl delete secret go-mtls-server-certs
-# kubectl delete secret go-mtls-client-certs
+kubectl get secret go-mtls-server-certs &> /dev/null && kubectl delete secret go-mtls-server-certs
+kubectl get secret go-mtls-client-certs &> /dev/null && kubectl delete secret go-mtls-client-certs
+
+
 kubectl create secret generic go-mtls-server-certs \
   --from-file=server.chain.pem=./certs/server/server.chain.pem \
   --from-file=server.key.pem=./certs/server/server.key.pem \
@@ -246,51 +244,22 @@ kubectl port-forward svc/go-mtls-server-service 8443:8443
 # make sure you have host entry at /etc/hosts as below
 
 # check with 
-cat /etc/hosts | grep go-mtls-server
+cat /etc/hosts | grep go-mtls-server-service
 # 127.0.0.1   go-mtls-server
 # if doesn't exist run
-echo "127.0.0.1   go-mtls-server" | sudo tee -a /etc/hosts
+echo "127.0.0.1   go-mtls-server-service" | sudo tee -a /etc/hosts
 
 
 # Output
 # Server response: Hello, client1!
 
-curl -vk https://localhost:8443/hello \
+curl -vk https://go-mtls-server-service:8443/hello \
   --cert ./certs/client/client.cert.pem \
   --key ./certs/client/client.key.pem \
   --cacert ./certs/client/root.cert.pem
 
 # Output 
 # Hello, client1!
-
-# Hurray!!  It works !
-
-cd pki-go
-docker run --rm \
-  -v $(pwd)/certs/client:/certs/client:ro \
-  curlimages/curl:latest \
-  curl -vk https://localhost:8443/hello \
-    --cert /certs/client/client.cert.pem \
-    --key /certs/client/client.key.pem \
-    --cacert /certs/client/root.cert.pem
-
-docker run --rm \
-  -v $(pwd)/certs/client:/certs/client:ro \
-  curlimages/curl:latest \
-  curl -vk https://go-mtls-server:8443/hello \
-    --cert /certs/client/client.cert.pem \
-    --key /certs/client/client.key.pem \
-    --cacert /certs/client/root.cert.pem
-
-
-cd ../k8s
-kubectl delete -f pki-client-deployment.yaml 
-
-kubectl create -f pki-client-deployment.yaml 
-
-# Output
-# deployment.apps/go-mtls-client created
-# job.batch/go-mtls-client-job created
 
 ```
 
