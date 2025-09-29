@@ -131,6 +131,7 @@ client:
       -----END CERTIFICATE-----
 
 server:
+  name: go-mtls-server
   image: sirajudheenam/go-mtls-server:latest
   replicas: 2
   servicePort: 8443

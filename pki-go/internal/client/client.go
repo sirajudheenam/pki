@@ -4,7 +4,6 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
-	"io"
 	"net/http"
 	"os"
 )
@@ -47,14 +46,16 @@ func NewClient(addr, certDir string) (*Client, error) {
 }
 
 // DoRequest calls /hello endpoint
-func (c *Client) DoRequest() (string, error) {
+func (c *Client) DoRequest() ( /* string */ *http.Response, error) {
 	// resp, err := c.http.Get(c.Addr + "/hello")
 	resp, err := c.http.Get(c.Addr)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	defer resp.Body.Close()
+	// defer resp.Body.Close()
 
-	body, err := io.ReadAll(resp.Body)
-	return string(body), err
+	// body, err := io.ReadAll(resp.Body)
+	// return string(body), err
+
+	return resp, nil
 }

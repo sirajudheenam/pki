@@ -1,10 +1,15 @@
 # Makefile
-VERSION ?= 1.0.1
+VERSION ?= 1.0.2
 DOCKER_USER = sirajudheenam
 IMAGES = server client
 IMAGE_PREFIX = go-mtls-
 
-.PHONY: build tag push release clean
+.PHONY: build test tag push release clean
+
+# Test our code
+test:
+	go test -v ./internal/server -args count 1
+	go test -v ./internal/client -args count 1
 
 ## Build all images with version tag
 build:
@@ -54,3 +59,4 @@ down:
 ## Tail logs
 logs:
 	docker compose logs -f
+

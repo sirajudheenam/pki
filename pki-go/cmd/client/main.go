@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"io"
 	"log"
 	"os"
 
@@ -55,6 +56,7 @@ func main() {
 	if err != nil {
 		log.Fatal("\n Request failed:", err)
 	}
+	body, err := io.ReadAll(resp.Body)
 
-	log.Println("Server Responded with : ", resp)
+	log.Println("Server Responded with : ", string(body))
 }

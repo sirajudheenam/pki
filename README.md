@@ -267,5 +267,18 @@ We have successfully deployed the app in Docker and k8s
 
 What is next?
 
-Perhaps create a helm chart for it.
+TODO: 
+  - Create helm Chart - DONE
+  - Deploy to GCP - DONE
 
+## GKE
+
+ - Deployment
+```bash
+GKE_URL=https://pki-server-576595803378.europe-west1.run.app
+PKI_CERT_PATH="${HOME}/workdir/pki/pki-go"
+curl -vk ${GKE_URL}:8443/hello \
+  --cert ${PKI_CERT_PATH}/client.cert.pem \
+  --key ${PKI_CERT_PATH}/client.key.pem \
+  --cacert ${PKI_CERT_PATH}/root.cert.pem
+```
