@@ -3,24 +3,27 @@
 
 set -e
 
-HOSTNAME=${2:-localhost}    # NEW: second argument for hostname
-BASE_DIR="demo-pki"         # NEW: base PKI folder
-PKI_DIR="$(pwd)/$BASE_DIR/$HOSTNAME"  # NEW: certificates per-host
-
 create_dir_structure() {
-  # Remove old host-specific PKI folder if it exists
+  # Get the directory where the script itself is located
+  SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  # Go one directory up
+  PARENT_DIR="$(dirname "$SCRIPT_DIR")"
+  PKI_DIR="$PARENT_DIR/demo-pki"
+  # Remove if folder exists
   if [ -d "$PKI_DIR" ]; then
-    rm -rf "$PKI_DIR"
+    rm -rf $PKI_DIR 
   fi
 
-  mkdir -p "$PKI_DIR"/{root,intermediate,server,crl,private,newcerts,client}
-  chmod 700 "$PKI_DIR"/private
-  touch "$PKI_DIR"/index.txt
-  echo 1000 > "$PKI_DIR"/serial
+  mkdir -p $PKI_DIR/{root,intermediate,server,crl,private,newcerts,client}
+  chmod 700 $PKI_DIR/private
+  touch $PKI_DIR/index.txt
+  echo 1000 > $PKI_DIR/serial
 }
 
+
 create_openssl_config() {
-cat > "$PKI_DIR/openssl.cnf" <<EOF
+# Create OpenSSL config with proper extensions
+cat > $PKI_DIR/openssl.cnf <<EOF
 [ ca ]
 default_ca = CA_default
 
@@ -40,21 +43,26 @@ default_bits        = 2048
 prompt              = no
 default_md          = sha256
 req_extensions      = req_ext
+prompt              = no
 distinguished_name  = dn
 
 [ dn ]
-C  = DE
-ST = Berlin
-L  = Berlin
-O  = DemoCA
-CN = $HOSTNAME   # NEW: dynamic CN
+countryName                 = Country Name (2 letter code)
+countryName_default         = DE
+stateOrProvinceName         = State or Province Name
+stateOrProvinceName_default = Berlin
+localityName                = Locality Name
+localityName_default        = Berlin
+organizationName            = Organization Name
+organizationName_default    = DemoCA
+commonName                  = Common Name
+CN                          = localhost
 
 [ req_ext ]
 subjectAltName = @alt_names
 
 [ alt_names ]
-DNS.1 = $HOSTNAME
-DNS.2 = localhost   # NEW: allow both host and localhost
+DNS.1 = localhost
 
 [ v3_ca ]
 basicConstraints = critical,CA:TRUE
@@ -115,7 +123,7 @@ create_intermediate_ca() {
 
   openssl x509 -noout -text -in $PKI_DIR/intermediate/intermediate.cert.pem
 
-  echo "******************************************************"
+  echo "******************"
   # Verify intermediate is signed by root
   # echo "Verifying Intermediate CA:"
   openssl verify -CAfile $PKI_DIR/root/root.cert.pem $PKI_DIR/intermediate/intermediate.cert.pem
@@ -129,14 +137,22 @@ create_root_bundle() {
 }
 
 create_server_cert() {
-  echo "=== 3. Create Server Certificate for $HOSTNAME ==="
+  echo "=== 3. Create Server Certificate ==="
   openssl genrsa -out $PKI_DIR/server/server.key.pem 2048
   chmod 400 $PKI_DIR/server/server.key.pem
 
+
   openssl req -new -key $PKI_DIR/server/server.key.pem \
     -out $PKI_DIR/server/server.csr.pem \
-    -subj "/C=DE/ST=Berlin/L=Berlin/O=DemoServer/OU=IT/CN=$HOSTNAME" \
+    -subj "/C=DE/ST=Berlin/L=Berlin/O=DemoServer/OU=IT/CN=localhost" \
     -config $PKI_DIR/openssl.cnf -extensions req_ext
+
+  # Sign server certificate with intermediate CA (server extensions)
+  # openssl x509 -req -in $PKI_DIR/server/server.csr.pem \
+  #   -CA $PKI_DIR/intermediate/intermediate.cert.pem \
+  #   -CAkey $PKI_DIR/intermediate/intermediate.key.pem \
+  #   -CAcreateserial -out $PKI_DIR/server/server.cert.pem \
+  #   -days 825 -sha256 -extfile $PKI_DIR/openssl.cnf -extensions v3_server_cert
 
   openssl x509 -req -in $PKI_DIR/server/server.csr.pem \
     -CA $PKI_DIR/intermediate/intermediate.cert.pem \
@@ -144,9 +160,9 @@ create_server_cert() {
     -CAcreateserial -out $PKI_DIR/server/server.cert.pem \
     -days 825 -sha256 -extfile $PKI_DIR/openssl.cnf -extensions req_ext
 
-  echo "Server certificate created for $HOSTNAME"
+  echo "Server certificate created:"
+  openssl x509 -noout -text -in $PKI_DIR/server/server.cert.pem
 }
-
 
 verify_server_cert() {
   # Verify server certificate against root and intermediate
@@ -219,33 +235,34 @@ verify_all_certs() {
 copy_client_certs() {
 
   # TEST SERVER folder
-  TEST_SERVER_DIR="pki-go/certs/$HOSTNAME/server"
-  TEST_CLIENT_DIR="pki-go/certs/$HOSTNAME/client"
+  TEST_SERVER_DIR=pki-go/certs/server
+  TEST_CLIENT_DIR=pki-go/certs/client
+  TEST_CA_SERVER_DIR=pki-go/certs/ca-server
 
   # Remove if folder exists
   rm -rf $TEST_SERVER_DIR $TEST_CLIENT_DIR $TEST_CA_SERVER_DIR
-  mkdir -p $TEST_SERVER_DIR $TEST_CLIENT_DIR
+  mkdir -p $TEST_SERVER_DIR $TEST_CLIENT_DIR $TEST_CA_SERVER_DIR
 
   cp $PKI_DIR/root/root.cert.pem $TEST_SERVER_DIR
-  echo "Root CA is copied to Go server: $TEST_SERVER_DIR"
+  echo "Root CA is copied to Go server:"
   cp $PKI_DIR/intermediate/intermediate.cert.pem $TEST_SERVER_DIR
-  echo "Intermediate CA is copied to Go server: $TEST_SERVER_DIR"
+  echo "Intermediate CA is copied to Go server:"
   cp $PKI_DIR/server/server.key.pem $TEST_SERVER_DIR
-  echo "Server Key is copied to Go server: $TEST_SERVER_DIR"
+  echo "Server Key is copied to Go server:"
   cp $PKI_DIR/server/server.cert.pem $TEST_SERVER_DIR
-  echo "Server cert is copied to Go server: $TEST_SERVER_DIR"
+  echo "Server cert is copied to Go server:"
 
   cp $PKI_DIR/server/server.chain.pem $TEST_SERVER_DIR
-  echo "Server chain is copied to Go server: $TEST_SERVER_DIR"
+  echo "Server chain is copied to Go server:"
 
 
   echo "Copying client certs to Go client:"
   cp $PKI_DIR/client/client.cert.pem $TEST_CLIENT_DIR
-  echo "Client cert is copied to Go client: $TEST_CLIENT_DIR"
+  echo "Client cert is copied to Go client:"
   cp $PKI_DIR/client/client.key.pem $TEST_CLIENT_DIR
-  echo "Client key is copied to Go client: $TEST_CLIENT_DIR"
+  echo "Client key is copied to Go client:"
   cp $PKI_DIR/root/root.cert.pem $TEST_CLIENT_DIR
-  echo "Root CA is copied to Go client: $TEST_CLIENT_DIR"
+  echo "Root CA is copied to Go client:"
 }
 
 
@@ -299,12 +316,6 @@ run_server_client_test() {
   echo "Server / Client test completed."
 }
 
-clean_certs() {
-  echo "Cleaning up test certificates..."
-  rm -rf pki-go/certs/$HOSTNAME
-}
-
-# === main ===
 all() {
   create_dir_structure
   create_openssl_config
@@ -319,14 +330,15 @@ all() {
   copy_client_certs
   run_server_client_test
 }
-
 case "$1" in
   all)
     all
     ;;
+  verify)
+    verify_all_certs
+    ;;
   *)
-    echo "Usage: $0 all [hostname]"
-    echo "Example: ./create-certs.sh all localhost"
-    echo "         ./create-certs.sh all myapp.local"
+    all
+    # echo "Usage: $0 [all|verify|server]"
     ;;
 esac

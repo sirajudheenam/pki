@@ -1,1 +1,49 @@
+# Helm
 helm-chart/demo
+
+# Go specific
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+coverage.out
+coverage.html
+
+# Test binary, built with 'go test -c'
+*.test
+
+# Output of the go coverage tool
+*.out
+coverage.html
+coverage/
+
+# Dependency directories
+vendor/
+
+# IDE specific files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS specific files
+.DS_Store
+.env
+*.env
+.env.local
+.env.*.local
+
+# Certificate files
+**/certs/
+*.pem
+*.key
+*.crt
+*.csr
+*.srl
+
+# Debug files
+__debug_bin

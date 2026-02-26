@@ -2,25 +2,49 @@ package server
 
 import (
 	"crypto/tls"
-	"fmt"
 	"io"
 	"net/http"
+	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
 	"github.com/sirajudheenam/pki/pki-go/internal/client"
+	"github.com/sirajudheenam/pki/pki-go/internal/config"
 )
 
 const (
-	urlToCheck = "https://go-mtls-server-service:8444/hello"
+	testPort   = "8444"
+	testHost   = "localhost" // Using existing certificates from certs/localhost
+	urlToCheck = "https://" + testHost + ":" + testPort + "/hello"
 )
 
+func setupTestCertificates(t *testing.T) string {
+	// Use existing certificates
+	cfg := &config.Config{
+		Hostname:    testHost,
+		Port:        testPort,
+		CertBaseDir: "../../certs",
+		CertSubDir:  "server",
+	}
+
+	// Verify that the certificate directory exists
+	certPath := cfg.GetCertificatePath()
+	if _, err := os.Stat(certPath); os.IsNotExist(err) {
+		t.Fatalf("Server certificate directory not found at %s", certPath)
+	}
+
+	return certPath
+}
+
+// No cleanup needed since we're using existing certificates
+
 func TestServerStartStop(t *testing.T) {
-	// Use the local certs path
-	certDir := "../../certs/server"
+	// Set up test certificates
+	certDir := setupTestCertificates(t)
 
 	// Create a new server
-	srv, err := NewServer(":8444", certDir) // use a test port
+	srv, err := NewServer(":"+testPort, certDir)
 	if err != nil {
 		t.Fatalf("failed to create server: %v", err)
 	}
@@ -33,14 +57,14 @@ func TestServerStartStop(t *testing.T) {
 		}
 	}()
 
-	// Wait until server is ready instead of fixed sleep
-	waitForServer(t, urlToCheck)
+	// Wait until server is ready
+	waitForServer(t)
 
 	// Case 1: client with valid certs should succeed
-	c, err := client.NewClient(urlToCheck, "../../certs/client")
-
+	clientCertPath := filepath.Join("../../certs", testHost, "client")
+	c, err := client.NewClient(urlToCheck, clientCertPath)
 	if err != nil {
-		fmt.Println(" Failed to create client:", err)
+		t.Fatalf("Failed to create client: %v", err)
 	}
 
 	// Make request
@@ -86,13 +110,13 @@ func TestServerStartStop(t *testing.T) {
 }
 
 // waitForServer retries until the server is reachable
-func waitForServer(t *testing.T, url string) {
-	client, err := client.NewClient(url, "../../certs/client")
-
+func waitForServer(t *testing.T) {
+	clientCertPath := filepath.Join("../../certs", testHost, "client")
+	client, err := client.NewClient(urlToCheck, clientCertPath)
 	if err != nil {
-		t.Fatal("Unable to create a client to test ")
+		t.Fatalf("Unable to create test client: %v", err)
 	}
-	deadline := time.Now().Add(2 * time.Second)
+	deadline := time.Now().Add(5 * time.Second)
 
 	for time.Now().Before(deadline) {
 		resp, err := client.DoRequest()

@@ -1,0 +1,4 @@
+hostname: localhost
+port: "8443"
+cert_base_dir: "certs"
+cert_sub_dir: "server"

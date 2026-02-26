@@ -1,8 +1,12 @@
 package client
 
 import (
+	"fmt"
 	"io"
 	"net/http"
+	"os"
+	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -10,16 +14,37 @@ import (
 )
 
 const (
-	urlToCheck = "https://go-mtls-server-service:8444/hello"
+	urlToCheck = "https://localhost:8444/hello"
 )
 
+const (
+	testHost = "localhost" // Using existing certificates from certs/localhost
+	testPort = "8444"
+)
+
+func setupTestCertificates(t *testing.T) (string, string) {
+	// Use existing certificates
+	serverCertDir := filepath.Join("../../certs", testHost, "server")
+	clientCertDir := filepath.Join("../../certs", testHost, "client")
+
+	// Verify that the certificate directories exist
+	if _, err := os.Stat(serverCertDir); os.IsNotExist(err) {
+		t.Fatalf("Server certificate directory not found at %s", serverCertDir)
+	}
+	if _, err := os.Stat(clientCertDir); os.IsNotExist(err) {
+		t.Fatalf("Client certificate directory not found at %s", clientCertDir)
+	}
+	return serverCertDir, clientCertDir
+}
+
+// No cleanup needed since we're using existing certificates
+
 func TestClientRequest(t *testing.T) {
-	// Use the local certs path
-	serverCertDir := "../../certs/server"
-	clientCertDir := "../../certs/client"
+	// Use existing certificates
+	serverCertDir, clientCertDir := setupTestCertificates(t)
 
 	// Create a new server
-	srv, err := server.NewServer(":8444", serverCertDir) // use a test port
+	srv, err := server.NewServer(":"+testPort, serverCertDir)
 	if err != nil {
 		t.Fatalf("failed to create server: %v", err)
 	}
@@ -78,7 +103,10 @@ func TestClientRequest(t *testing.T) {
 
 // waitForServer retries until the server is reachable
 func waitForServer(t *testing.T, url string) {
-	client, err := NewClient(url, "../../certs/client")
+	fmt.Printf("Waiting for server at %s...\n", url)
+	// extract hostname from url
+	hostname := strings.Split(url, ":")[1]
+	client, err := NewClient(url, "../../certs/"+hostname+"/client")
 
 	if err != nil {
 		t.Fatal("Unable to create a client to test ")

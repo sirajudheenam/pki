@@ -1,5 +1,5 @@
 client:
-  image: sirajudheenam/go-mtls-client:latest
+  image: sirajudheenam/go-mtls-client:1.0.0
   replicas: 1
   certs:
     # cat pki-go/certs/client/client.cert.pem
@@ -132,7 +132,7 @@ client:
 
 server:
   name: go-mtls-server
-  image: sirajudheenam/go-mtls-server:latest
+  image: sirajudheenam/go-mtls-server:1.0.0
   replicas: 2
   servicePort: 8443
   nodePort: 30443

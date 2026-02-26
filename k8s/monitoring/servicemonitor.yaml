@@ -1,0 +1,20 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: go-mtls-server
+  labels:
+    app: go-mtls-server
+spec:
+  selector:
+    matchLabels:
+      app: go-mtls-server
+  endpoints:
+  - port: metrics
+    path: /metrics
+    interval: 15s
+    scheme: https
+    tlsConfig:
+      caFile: /etc/prometheus/certs/ca.crt
+      certFile: /etc/prometheus/certs/client.crt
+      keyFile: /etc/prometheus/certs/client.key
+      serverName: go-mtls-server

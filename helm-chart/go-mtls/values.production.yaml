@@ -1,0 +1,47 @@
+# Production values for go-mtls
+server:
+  replicas: 3
+  resources:
+    requests:
+      cpu: 200m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  metrics:
+    enabled: true
+    serviceMonitor:
+      enabled: true
+  certManager:
+    enabled: true
+    issuerName: letsencrypt-prod
+    issuerKind: ClusterIssuer
+  ingress:
+    enabled: true
+    annotations:
+      kubernetes.io/ingress.class: nginx
+      cert-manager.io/cluster-issuer: letsencrypt-prod
+    hosts:
+      - host: go-mtls.soldev.c.eu-de-1.cloud.sap
+        paths:
+          - path: /
+            pathType: Prefix
+    tls:
+      - secretName: mtls-server-tls
+        hosts:
+          - go-mtls.soldev.c.eu-de-1.cloud.sap
+
+client:
+  replicas: 2
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi
+  schedule: "*/5 * * * *"  # Run every 5 minutes
+  certManager:
+    enabled: true
+    issuerName: letsencrypt-prod
+    issuerKind: ClusterIssuer

@@ -1,15 +1,77 @@
 # Makefile
-VERSION ?= 1.0.2
+VERSION ?= 1.0.0
 DOCKER_USER = sirajudheenam
 IMAGES = server client
 IMAGE_PREFIX = go-mtls-
+HOSTNAME ?= go-mtls-server-service
+CERT_DIR = certs
+SERVER_PORT ?= 8443
+GO_FILES = $(shell find . -type f -name '*.go')
 
-.PHONY: build test tag push release clean
+.PHONY: all build test tag push release clean cert-gen cert-clean run-server run-client help
 
-# Test our code
-test:
-	go test -v ./internal/server -args count 1
-	go test -v ./internal/client -args count 1
+all: test build tag
+
+## Generate certificates for the given hostname (default: localhost)
+cert-gen:
+	@echo "🔐 Generating certificates for $(HOSTNAME)..."
+	@mkdir -p $(CERT_DIR)/{ca,server,client}
+	@cd .. && bash scripts/create-certs.sh all $(HOSTNAME)
+	@echo "✅ Certificates generated in $(CERT_DIR) directory"
+
+## Remove all generated certificates
+cert-clean:
+	@echo "🧹 Cleaning up certificates..."
+	@rm -rf $(CERT_DIR)/*
+	@echo "✅ Certificates cleaned"
+
+## Run server locally
+run-server: cert-gen
+	@echo "🚀 Starting server on port $(SERVER_PORT) for $(HOSTNAME)..."
+	HOSTNAME=$(HOSTNAME) \
+	PORT=$(SERVER_PORT) \
+	CERT_BASE_DIR=$(CERT_DIR) \
+	go run cmd/server/main.go
+
+## Run client locally
+run-client: cert-gen
+	@echo "🔄 Starting client for $(HOSTNAME)..."
+	SERVER_NAME=$(HOSTNAME) \
+	SERVER_PORT=$(SERVER_PORT) \
+	SERVER_ROOT_PATH=/hello \
+	CLIENT_CERTS=./$(CERT_DIR)/$(HOSTNAME)/client \
+	go run cmd/client/main.go
+
+## Run tests with coverage
+test: cert-gen
+	@echo "🧪 Running tests with coverage..."
+	@mkdir -p coverage
+	go test -toolexec= -v -race -coverprofile=coverage.out -covermode=atomic ./internal/... -count=1
+	go tool cover -html=coverage.out -o coverage.html
+	@echo "✅ Tests complete. Coverage report generated in coverage.html"
+	@echo "🔍 Coverage summary:"
+	@go tool cover -func=coverage.out
+
+## Run tests with coverage
+test-only:
+	@echo "🧪 Running tests with coverage..."
+	@mkdir -p coverage
+	go test -toolexec= -v -race -coverprofile=coverage.out -covermode=atomic ./internal/... -count=1
+	go tool cover -html=coverage.out -o coverage.html
+	@echo "✅ Tests complete. Coverage report generated in coverage.html"
+	@echo "🔍 Coverage summary:"
+	@go tool cover -func=coverage.out
+
+## Format code and run linters
+lint:
+	@echo "🔍 Running linters..."
+	go fmt ./...
+	go vet ./...
+	@if command -v golangci-lint >/dev/null 2>&1; then \
+		golangci-lint run; \
+	else \
+		echo "⚠️  golangci-lint not installed. Run: go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest"; \
+	fi
 
 ## Build all images with version tag
 build:
@@ -49,14 +111,38 @@ clean:
 # 	docker network prune -f
 
 ## Run services in background
-up:
+up: cert-gen
+	@echo "🚀 Starting services..."
 	docker compose up -d
 
 ## Stop services
 down:
+	@echo "🛑 Stopping services..."
 	docker compose down
 
 ## Tail logs
 logs:
 	docker compose logs -f
 
+## Show help
+help:
+	@echo "Available targets:"
+	@echo "  cert-gen     - Generate certificates for given HOSTNAME (default: localhost)"
+	@echo "  cert-clean   - Remove all generated certificates"
+	@echo "  run-server   - Run server locally (generates certs if needed)"
+	@echo "  run-client   - Run client locally (generates certs if needed)"
+	@echo "  test         - Run tests with coverage"
+	@echo "  lint         - Format code and run linters"
+	@echo "  build        - Build Docker images"
+	@echo "  tag         - Tag images as latest"
+	@echo "  push        - Push images to registry"
+	@echo "  release     - Build, tag, and push a new release"
+	@echo "  clean       - Remove images and certificates"
+	@echo "  up          - Start services with Docker Compose"
+	@echo "  down        - Stop services"
+	@echo "  logs        - Show service logs"
+	@echo
+	@echo "Variables:"
+	@echo "  HOSTNAME    - Target hostname for certificates (default: localhost)"
+	@echo "  VERSION     - Image version tag (default: 1.0.2)"
+	@echo "  SERVER_PORT - Server port (default: 8443)"

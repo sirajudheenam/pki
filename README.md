@@ -9,7 +9,7 @@ We shall create certificates manually first to understand what does it do.
 
 ```bash
 # This creates certificates for `localhost`
-bash scripts/create-certs.sh
+bash scripts/create-certs.sh all localhost
 ```
 
 script | purpose
@@ -148,6 +148,7 @@ make release VERSION=local
 # Clean up local images
 make clean VERSION=local
 # Start services
+source .env.local
 make up
 # Stop services
 make down
