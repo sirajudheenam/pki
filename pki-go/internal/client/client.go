@@ -1,11 +1,15 @@
+// pki-go/internal/client/client.go
 package client
 
 import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
+	"io"
+	"log"
 	"net/http"
 	"os"
+	"path/filepath"
 )
 
 // Client wraps an HTTP client
@@ -16,12 +20,34 @@ type Client struct {
 
 // NewClient returns a configured HTTPS client
 func NewClient(addr, certDir string) (*Client, error) {
-	cert, err := tls.LoadX509KeyPair(certDir+"/client.cert.pem", certDir+"/client.key.pem")
+
+	certFile := filepath.Join(certDir, "client.cert.pem")
+	keyFile := filepath.Join(certDir, "client.key.pem")
+
+	cert, err := tls.LoadX509KeyPair(certFile, keyFile)
 	if err != nil {
 		return nil, fmt.Errorf("failed loading client cert/key: %w", err)
 	}
 
-	caCert, err := os.ReadFile(certDir + "/inter-root-combined.cert.pem")
+	root, err := os.OpenRoot(certDir)
+	if err != nil {
+		return nil, err
+	}
+
+	certDirFile, err := root.Open("inter-root-combined.cert.pem")
+	if err != nil {
+		log.Fatalf("unable to load inter-root-combined.cert.pem")
+	}
+
+	// /* Ensure a proper close and error check */
+	defer func() {
+		err := certDirFile.Close()
+		if err != nil {
+			log.Fatalf("Unable to close file: %v", err)
+		}
+	}()
+
+	caCert, err := io.ReadAll(certDirFile)
 	if err != nil {
 		return nil, err
 	}
@@ -39,23 +65,27 @@ func NewClient(addr, certDir string) (*Client, error) {
 		Transport: &http.Transport{TLSClientConfig: tlsConfig},
 	}
 
-	return &Client{
+	client := &Client{
 		Addr: addr,
 		http: httpClient,
-	}, nil
+	}
+
+	return client, nil
 }
 
 // DoRequest calls /hello endpoint
-func (c *Client) DoRequest() ( /* string */ *http.Response, error) {
-	// resp, err := c.http.Get(c.Addr + "/hello")
+func (c *Client) DoRequest() (*http.Response, error) {
 	resp, err := c.http.Get(c.Addr)
 	if err != nil {
+		if tlsErr, ok := err.(x509.UnknownAuthorityError); ok {
+			log.Printf("Unknown authority: %s", tlsErr.Error())
+		} else if tlsErr, ok := err.(x509.HostnameError); ok {
+			log.Printf("Hostname error: %s", tlsErr.Error())
+		} else {
+			log.Printf("General error: %v", err)
+		}
 		return nil, err
 	}
-	// defer resp.Body.Close()
-
-	// body, err := io.ReadAll(resp.Body)
-	// return string(body), err
 
 	return resp, nil
 }

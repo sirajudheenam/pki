@@ -52,20 +52,32 @@ func startTestServer(t *testing.T) *http.Server {
 		}
 	})
 
+	errCh := make(chan error, 1)
+
 	go func() {
-		if err := server.ListenAndServeTLS("", ""); err != nil && err != http.ErrServerClosed {
-			t.Fatalf("Server failed: %v", err)
+		err := server.ListenAndServeTLS("", "")
+		if err != nil && err != http.ErrServerClosed {
+			errCh <- err
 		}
 	}()
 
-	// Give the server a moment to start
-	time.Sleep(500 * time.Millisecond)
+	select {
+	case err := <-errCh:
+		t.Fatalf("Server failed to start: %v", err)
+	case <-time.After(500 * time.Millisecond):
+		t.Log("Server started successfully")
+	}
+
 	return server
 }
 
 func TestClientServer(t *testing.T) {
 	server := startTestServer(t)
-	defer server.Close()
+	defer func() {
+		if err := server.Close(); err != nil {
+			t.Logf("Error closing server: %v", err)
+		}
+	}()
 
 	// Load client cert
 	clientCert, err := tls.LoadX509KeyPair("certs/client/client.cert.pem", "certs/client/client.key.pem")
@@ -96,7 +108,11 @@ func TestClientServer(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Client request failed: %v", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			t.Logf("Failed to close response body: %v", err)
+		}
+	}()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {

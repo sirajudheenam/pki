@@ -5,9 +5,11 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
+	"html"
 	"log"
 	"net/http"
 	"os"
+	"time"
 )
 
 func RunServer() {
@@ -39,17 +41,24 @@ func RunServer() {
 	}
 
 	server := &http.Server{
-		Addr:      ":8443",
-		TLSConfig: tlsConfig,
+		Addr:              ":8443",
+		TLSConfig:         tlsConfig,
+		ReadHeaderTimeout: 5 * time.Second, // An attacker could keep connections half-open forever
 	}
 
 	http.HandleFunc("/hello", func(w http.ResponseWriter, r *http.Request) {
+
 		// Print info about the client cert
 		if len(r.TLS.PeerCertificates) > 0 {
 			clientCert := r.TLS.PeerCertificates[0]
-			fmt.Fprintf(w, "Hello, %s!\n", clientCert.Subject.CommonName)
+			name := html.EscapeString(clientCert.Subject.CommonName)
+			if _, err := fmt.Fprintf(w, "Hello, %s!\n", name); err != nil {
+				log.Printf("Error writing response: %v", err)
+			}
 		} else {
-			fmt.Fprintf(w, "Hello, unknown client!\n")
+			if _, err := fmt.Fprintf(w, "Hello, unknown client!\n"); err != nil {
+				log.Printf("Error writing response: %v", err)
+			}
 		}
 	})
 

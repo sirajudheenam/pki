@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"crypto/tls"
 	"io"
 	"net/http"
@@ -49,10 +50,15 @@ func TestServerStartStop(t *testing.T) {
 		t.Fatalf("failed to create server: %v", err)
 	}
 
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer func() {
+		cancel()
+	}()
+
 	// Start server asynchronously
 	errCh := srv.StartAsync()
 	defer func() {
-		if err := srv.Shutdown(); err != nil {
+		if err := srv.Shutdown(ctx); err != nil {
 			t.Errorf("failed to shutdown server: %v", err)
 		}
 	}()
@@ -72,7 +78,11 @@ func TestServerStartStop(t *testing.T) {
 	if err != nil {
 		t.Fatalf("expected success with valid certs, got error: %v", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			t.Errorf("failed to close response body: %v", err)
+		}
+	}()
 	if resp.StatusCode != http.StatusOK {
 		t.Errorf("expected 200 OK, got %v", resp.Status)
 	}
@@ -121,7 +131,9 @@ func waitForServer(t *testing.T) {
 	for time.Now().Before(deadline) {
 		resp, err := client.DoRequest()
 		if err == nil {
-			resp.Body.Close()
+			if err := resp.Body.Close(); err != nil {
+				t.Errorf("failed to close response body: %v", err)
+			}
 			return
 		}
 		time.Sleep(100 * time.Millisecond)

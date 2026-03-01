@@ -72,6 +72,14 @@ lint:
 	else \
 		echo "⚠️  golangci-lint not installed. Run: go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest"; \
 	fi
+## Run gosec
+gosec:
+	@echo "🔍 Running gosec..."
+	@if command -v gosec >/dev/null 2>&1; then \
+		golangci-lint run; \
+	else \
+		echo "⚠️ gosec not installed. Run: go install github.com/securego/gosec/v2/cmd/gosec@latest"; \
+	fi
 
 ## Build all images with version tag
 build:

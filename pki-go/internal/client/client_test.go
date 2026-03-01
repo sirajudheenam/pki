@@ -1,6 +1,7 @@
 package client
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"net/http"
@@ -43,6 +44,11 @@ func TestClientRequest(t *testing.T) {
 	// Use existing certificates
 	serverCertDir, clientCertDir := setupTestCertificates(t)
 
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer func() {
+		cancel()
+	}()
+
 	// Create a new server
 	srv, err := server.NewServer(":"+testPort, serverCertDir)
 	if err != nil {
@@ -52,7 +58,7 @@ func TestClientRequest(t *testing.T) {
 	// Start server asynchronously
 	errCh := srv.StartAsync()
 	defer func() {
-		if err := srv.Shutdown(); err != nil {
+		if err := srv.Shutdown(ctx); err != nil {
 			t.Errorf("failed to shutdown server: %v", err)
 		}
 	}()
@@ -71,7 +77,11 @@ func TestClientRequest(t *testing.T) {
 	if err != nil {
 		t.Fatalf("expected success with valid certs, got error: %v", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			t.Errorf("failed to close response body: %v", err)
+		}
+	}()
 	if resp.StatusCode != http.StatusOK {
 		t.Errorf("expected 200 OK, got %v", resp.Status)
 	}
@@ -116,7 +126,9 @@ func waitForServer(t *testing.T, url string) {
 	for time.Now().Before(deadline) {
 		resp, err := client.DoRequest()
 		if err == nil {
-			resp.Body.Close()
+			if err := resp.Body.Close(); err != nil {
+				t.Errorf("failed to close response body: %v", err)
+			}
 			return
 		}
 		time.Sleep(100 * time.Millisecond)
