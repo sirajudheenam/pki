@@ -22,7 +22,7 @@ const (
 
 func setupTestCertificates(t *testing.T) string {
 	// Use existing certificates
-	cfg := &config.Config{
+	cfg := &config.ServerConfig{
 		Hostname:    testHost,
 		Port:        testPort,
 		CertBaseDir: "../../certs",
