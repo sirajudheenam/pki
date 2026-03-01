@@ -328,53 +328,53 @@ all() {
     run_server_client_test
 }
 
-# Display menu and execute function based on user choice
-while true; do
-    echo "Select an option:"
-    echo "1) Create directory structure"
-    echo "2) Create OpenSSL config"
-    echo "3) Create root CA"
-    echo "4) Create intermediate CA"
-    echo "5) Create root bundle"
-    echo "6) Create server certificate"
-    echo "7) Verify server certificate"
-    echo "8) Create client certificate"
-    echo "9) Verify client certificate"
-    echo "10) Verify all certificates"
-    echo "11) Copy client certificates"
-    echo "12) Run server-client test"
-    echo "13) Execute all tasks"
-    echo "0) Exit"
+# # Display menu and execute function based on user choice
+# while true; do
+#     echo "Select an option:"
+#     echo "1) Create directory structure"
+#     echo "2) Create OpenSSL config"
+#     echo "3) Create root CA"
+#     echo "4) Create intermediate CA"
+#     echo "5) Create root bundle"
+#     echo "6) Create server certificate"
+#     echo "7) Verify server certificate"
+#     echo "8) Create client certificate"
+#     echo "9) Verify client certificate"
+#     echo "10) Verify all certificates"
+#     echo "11) Copy client certificates"
+#     echo "12) Run server-client test"
+#     echo "13) Execute all tasks"
+#     echo "0) Exit"
 
-    read -p "Enter your choice: " choice
+#     read -p "Enter your choice: " choice
 
-    case $choice in
-        1) create_dir_structure ;;
-        2) create_openssl_config ;;
-        3) create_root_ca ;;
-        4) create_intermediate_ca ;;
-        5) create_root_bundle ;;
-        6) create_server_cert ;;
-        7) verify_server_cert ;;
-        8) create_client_cert ;;
-        9) verify_client_cert ;;
-        10) verify_all_certs ;;
-        11) copy_client_certs ;;
-        12) run_server_client_test ;;
-        13) all ;;
-        0) echo "Exiting..."; break ;;
-        *) echo "Invalid choice. Please try again." ;;
-    esac
-    echo ""
-done
+#     case $choice in
+#         1) create_dir_structure ;;
+#         2) create_openssl_config ;;
+#         3) create_root_ca ;;
+#         4) create_intermediate_ca ;;
+#         5) create_root_bundle ;;
+#         6) create_server_cert ;;
+#         7) verify_server_cert ;;
+#         8) create_client_cert ;;
+#         9) verify_client_cert ;;
+#         10) verify_all_certs ;;
+#         11) copy_client_certs ;;
+#         12) run_server_client_test ;;
+#         13) all ;;
+#         0) echo "Exiting..."; break ;;
+#         *) echo "Invalid choice. Please try again." ;;
+#     esac
+#     echo ""
+# done
 
-# case "$1" in
-#     all)
-#         all
-#     ;;
-#     *)
-#         echo "Usage: $0 all [hostname]"
-#         echo "Example: ./create-certs.sh all localhost"
-#         echo "         ./create-certs.sh all myapp.local"
-#     ;;
-# esac
+case "$1" in
+    all)
+        all
+    ;;
+    *)
+        echo "Usage: $0 all [hostname]"
+        echo "Example: ./create-certs.sh all localhost"
+        echo "         ./create-certs.sh all myapp.local"
+    ;;
+esac
