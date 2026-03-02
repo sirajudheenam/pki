@@ -28,7 +28,7 @@ WORKDIR /app
 COPY --from=builder /app/server .
 
 # Copy server certificates (adjust paths to your certs)
-COPY certs/server ./certs/server
+COPY certs ./certs
 
 # Expose port
 EXPOSE 8443

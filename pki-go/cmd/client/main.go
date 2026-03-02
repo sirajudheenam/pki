@@ -94,8 +94,7 @@ func main() {
 	flag.Parse()
 
 	serverURL := strings.Join([]string{"https://", *serverName, ":", *serverPort, *serverRootPath}, "")
-	// log.Printf("Connecting to server at: %q", serverURL)
-	log.Printf("After Parsing : Certificate Path: %q", *certPath)
+	log.Printf("Connecting to server at: %q", serverURL)
 
 	// Additional starts here. // Can be safely REMOVED
 
@@ -104,8 +103,6 @@ func main() {
 
 	certFile := filepath.Join(*certPath, "client.cert.pem")
 	keyFile := filepath.Join(*certPath, "client.key.pem")
-	log.Printf("certFile: %v", certFile)
-	log.Printf("keyFile: %v", keyFile)
 	cert, err := tls.LoadX509KeyPair(certFile, keyFile)
 	if err != nil {
 		log.Fatalf("Failed loading client cert/key: %v", err)

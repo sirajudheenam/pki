@@ -19,7 +19,7 @@ create_dir_structure() {
         rm -rf "$PKI_DIR"
     fi
     
-    if [ -d "$BASE_DIR"]; then
+    if [ -d "$BASE_DIR" ]; then
         rm -rf "$BASE_DIR"
     fi
     

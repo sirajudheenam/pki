@@ -1,5 +1,5 @@
 # Build stage
-FROM golang:1.25-alpine AS builder
+FROM golang:1.26-alpine AS builder
 
 WORKDIR /app
 
@@ -14,7 +14,7 @@ FROM alpine:latest
 WORKDIR /app
 
 COPY --from=builder /app/client .
-COPY certs/client ./certs/client
+COPY certs ./certs
 
 # CMD ["sh", "-c", "./client --server-name ${SERVER_NAME} --server-port ${SERVER_PORT} --server-root-path ${SERVER_ROOT_PATH} --cert-path ${CERT_PATH}"]
 

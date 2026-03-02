@@ -51,7 +51,6 @@ func LoadConfig() (*Config, error) {
 		Client: *clientConfig,
 	}
 
-	fmt.Printf("config (before loading config.yaml) : %+v \n", config)
 	// Check environment variables first
 	if hostname := os.Getenv("HOSTNAME"); hostname != "" {
 		config.Server.Hostname = hostname
@@ -79,8 +78,6 @@ func LoadConfig() (*Config, error) {
 		}
 	}
 
-	fmt.Printf("Config: %+v\n", config)
-	fmt.Printf("Config Type: %T\n", config)
 	return config, nil
 }
 

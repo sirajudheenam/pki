@@ -20,23 +20,18 @@ func main() {
 	if err != nil {
 		log.Printf("Warning: Error loading config: %v", err)
 		log.Println("Using default configuration...")
-	} else {
-		log.Printf("Configuration loaded successfully: %+v\n", cfg)
 	}
 
-	fmt.Printf("Configuration: %+v\n", cfg)
-
 	// Get certificate path
-	certPath := cfg.GetCertificatePath()
-	log.Printf("CertPath is %s - Loaded from cfg", certPath)
+	certPath := cfg.Server.GetCertificatePath()
 
 	// Verify certificate directory exists
 	if _, err := os.Stat(certPath); os.IsNotExist(err) {
-		log.Fatalf("Certificate directory not found: %s. Please run 'make cert-gen HOSTNAME=%s' first", certPath, cfg.Hostname)
+		log.Fatalf("Certificate directory not found: %s. Please run 'make cert-gen HOSTNAME=%s' first", certPath, cfg.Server.Hostname)
 	}
 
 	// Create server with configured values
-	srv, err := server.NewServer(fmt.Sprintf(":%s", cfg.Port), certPath)
+	srv, err := server.NewServer(fmt.Sprintf(":%s", cfg.Server.Port), certPath)
 	if err != nil {
 		log.Fatal(err)
 	}

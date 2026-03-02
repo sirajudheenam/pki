@@ -24,8 +24,6 @@ type Server struct {
 // New returns a configured server
 func NewServer(addr, certDir string) (*Server, error) {
 
-	log.Println("internal/server/server.go - called")
-
 	certPath := filepath.Join(certDir, "server.chain.pem")
 	keyPath := filepath.Join(certDir, "server.key.pem")
 

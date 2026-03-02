@@ -3,14 +3,15 @@ VERSION ?= 1.0.0
 DOCKER_USER = sirajudheenam
 IMAGES = server client
 IMAGE_PREFIX = go-mtls-
-HOSTNAME ?= localhost ## go-mtls-server-service
+## go-mtls-server-service
+HOSTNAME ?= localhost
 CERT_BASE_DIR = certs
 SERVER_PORT ?= 8443
 GO_FILES = $(shell find . -type f -name '*.go')
 # Additional
 PKI_VERSION=local
 SERVER_ROOT_PATH=/hello
-CERT_BASE_DIR=certs
+CERT_BASE_DIR=./certs
 SERVER_CERT_SUB_DIR=server
 CLIENT_CERT_SUB_DIR=client
 
@@ -21,7 +22,7 @@ all: test build tag
 ## Generate certificates for the given hostname (default: localhost)
 cert-gen:
 	@echo "🔐 Generating certificates for $(HOSTNAME)..."
-	@mkdir -p $(CERT_BASE_DIR)/$(HOSTNAME)/{ca,server,client}
+# 	@mkdir -p $(CERT_BASE_DIR)/$(HOSTNAME)/{ca,server,client}
 	@cd .. && bash scripts/create-certs.sh all $(HOSTNAME)
 	@echo "✅ Certificates generated in $(CERT_BASE_DIR) directory"
 
@@ -44,8 +45,8 @@ run-client: cert-gen
 	@echo "🔄 Starting client for $(HOSTNAME)..."
 	SERVER_NAME=$(HOSTNAME) \
 	SERVER_PORT=$(SERVER_PORT) \
-	SERVER_ROOT_PATH=/hello \
-	CLIENT_CERTS=./$(CERT_BASE_DIR)/$(HOSTNAME)/$(CLIENT_CERT_SUB_DIR) \
+	SERVER_ROOT_PATH=$(SERVER_ROOT_PATH) \
+	CLIENT_CERTS=$(CERT_BASE_DIR)/$(HOSTNAME)/$(CLIENT_CERT_SUB_DIR) \
 	go run cmd/client/main.go
 
 ## Run tests with coverage
