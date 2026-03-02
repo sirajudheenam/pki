@@ -34,7 +34,6 @@ func NewServer(addr, certDir string) (*Server, error) {
 		return nil, fmt.Errorf("failed loading server cert/key: %w", err)
 	}
 
-	// log.Println("LoadX509KeyPair - called")
 	root, err := os.OpenRoot(certDir)
 	if err != nil {
 		return nil, err
@@ -48,7 +47,6 @@ func NewServer(addr, certDir string) (*Server, error) {
 	if err != nil {
 		return nil, err
 	}
-	// log.Println("caRootFile: root.cert.pem is read")
 
 	caInterCertFile, err := root.Open("intermediate.cert.pem")
 	if err != nil {
@@ -59,7 +57,6 @@ func NewServer(addr, certDir string) (*Server, error) {
 		log.Fatalf("Unable to read caInterCertFile ")
 		return nil, err
 	}
-	// log.Println("certDirFile: intermediate.cert.pem is read")
 
 	caCertPool := x509.NewCertPool()
 	caCertPool.AppendCertsFromPEM(caRootCertContent)
@@ -73,8 +70,6 @@ func NewServer(addr, certDir string) (*Server, error) {
 		MaxVersion:         tls.VersionTLS12,
 		InsecureSkipVerify: false, // keep this false for production
 	}
-
-	// log.Printf("TLS configuration loaded with min version: %x", tlsConfig.MinVersion)
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/hello", func(w http.ResponseWriter, r *http.Request) {

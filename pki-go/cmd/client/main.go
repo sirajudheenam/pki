@@ -16,69 +16,101 @@ import (
 	"time"
 
 	internalClient "github.com/sirajudheenam/pki/pki-go/internal/client"
+	"github.com/sirajudheenam/pki/pki-go/internal/config"
 )
 
 func main() {
-	// Default values
-	defaultServerName := "go-mtls-server-service"
-	defaultPort := "8443"
-	defaultServerRootPath := "/hello"
+
+	cfg, err := config.LoadConfig()
+	defaultServerName := cfg.Client.Hostname
+	defaultPort := cfg.Client.Port
+	defaultServerRootPath := cfg.Client.ServerRootPath
+	defaultClientCertPath := cfg.Client.GetCertificatePath()
 
 	cwd, err := os.Getwd()
 
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Println(cwd)
-	defaultCertPath := strings.Join([]string{cwd + "/certs/" + defaultServerName + "/client/"}, "")
-	// log.Printf("1. defaultCertPath %s", defaultCertPath)
+
 	// Override defaults with environment variables if set
-	if envServerName := os.Getenv("SERVER_NAME"); envServerName != "" {
+	envServerName := os.Getenv("SERVER_NAME")
+	if envServerName != "" {
 		safe := strings.ReplaceAll(envServerName, "\n", "")
-		// log.Printf("Using env: SERVER_NAME: %q", safe)
+		log.Printf("Using env: SERVER_NAME: %q", safe)
 		defaultServerName = safe
-		defaultCertPath = strings.Join([]string{cwd + "/certs/" + defaultServerName + "/client/"}, "")
 	}
-	if envServerPort := os.Getenv("SERVER_PORT"); envServerPort != "" {
+	envServerPort := os.Getenv("SERVER_PORT")
+	if envServerPort != "" {
 		safe := strings.ReplaceAll(envServerPort, "\n", "")
-		// log.Printf("Using env: SERVER_PORT: %q", safe)
+		log.Printf("Using env: SERVER_PORT: %q", safe)
 		defaultPort = safe
 	}
-	if envServerRootPath := os.Getenv("SERVER_ROOT_PATH"); envServerRootPath != "" {
+	envServerRootPath := os.Getenv("SERVER_ROOT_PATH")
+	if envServerRootPath != "" {
 		safe := strings.ReplaceAll(envServerRootPath, "\n", "")
-		// log.Printf("Using env: SERVER_ROOT_PATH: %q", safe)
+		log.Printf("Using env: SERVER_ROOT_PATH: %q", safe)
 		defaultServerRootPath = safe
 	}
-	if envCertPath := os.Getenv("CLIENT_CERT_BASE_DIR"); envCertPath != "" {
+	envCertPath := os.Getenv("CERT_BASE_DIR")
+	if envCertPath != "" {
 		safe := strings.ReplaceAll(envCertPath, "\n", "")
-		// log.Printf("Using env: CLIENT_CERT_BASE_DIR: %q", safe)
-		defaultCertPath = strings.Join([]string{cwd, "/", safe}, "")
+		log.Printf("Using env: CERT_BASE_DIR: %q", safe)
 	}
-	// log.Printf("2. defaultCertPath %s", defaultCertPath)
+	envSubPath := os.Getenv("CLIENT_CERT_SUB_DIR")
+	if envSubPath != "" {
+		safe := strings.ReplaceAll(envSubPath, "\n", "")
+		log.Printf("Using env: CLIENT_CERT_SUB_DIR: %q", safe)
+	}
+	if envCertPath != "" && envServerName != "" && envSubPath != "" {
+		defaultClientCertPath = strings.Join([]string{cwd, "/", envCertPath, "/", envServerName, "/", envSubPath}, "")
+	}
+
+	// Default values
+	if defaultServerName == "" {
+		defaultServerName = "go-mtls-server-service"
+	}
+
+	if defaultPort == "" {
+		defaultPort = "8443"
+	}
+
+	if defaultServerRootPath == "" {
+		defaultServerRootPath = "/hello"
+	}
+
+	if defaultClientCertPath == "" {
+		defaultClientCertPath = strings.Join([]string{cwd, "/", "certs", "/", defaultServerName, "/", "client"}, "")
+	}
+
+	log.Printf("SERVER_NAME: defaultClientCertPath Path: %q", defaultClientCertPath)
+
 	// Command-line flags (take precedence over env vars)
 
 	serverName := flag.String("server-name", defaultServerName, "Server name")
 	serverPort := flag.String("server-port", defaultPort, "Server port")
 	serverRootPath := flag.String("server-root-path", defaultServerRootPath, "Server root path")
-	certPath := flag.String("cert-path", defaultCertPath, "Path to client certificates")
+	certPath := flag.String("cert-path", defaultClientCertPath, "Path to client certificates")
 	flag.Parse()
 
 	serverURL := strings.Join([]string{"https://", *serverName, ":", *serverPort, *serverRootPath}, "")
 	// log.Printf("Connecting to server at: %q", serverURL)
-	// log.Printf("Certificate Path: %q", *certPath)
+	log.Printf("After Parsing : Certificate Path: %q", *certPath)
 
 	// Additional starts here. // Can be safely REMOVED
 
-	// log.Println("Additional starts here.")
-	// fmt.Println("Additional starts here.")
+	log.Println("Additional starts here.")
+	fmt.Println("Additional starts here.")
 
 	certFile := filepath.Join(*certPath, "client.cert.pem")
 	keyFile := filepath.Join(*certPath, "client.key.pem")
+	log.Printf("certFile: %v", certFile)
+	log.Printf("keyFile: %v", keyFile)
 	cert, err := tls.LoadX509KeyPair(certFile, keyFile)
 	if err != nil {
 		log.Fatalf("Failed loading client cert/key: %v", err)
 	}
-	// log.Println("Successfully loaded client certificate and key.")
+	log.Println("Successfully loaded client certificate and key.")
 
 	root, err := os.OpenRoot(*certPath)
 	if err != nil {
@@ -104,8 +136,8 @@ func main() {
 	caCertPool := x509.NewCertPool()
 	caCertPool.AppendCertsFromPEM(caCert)
 
-	// log.Printf("caCertPool: %v", &caCertPool)
-	// log.Println("Successfully appended CA certificate to pool.")
+	log.Printf("caCertPool: %v", &caCertPool)
+	log.Println("Successfully appended CA certificate to pool.")
 
 	tlsConfig := &tls.Config{
 		Certificates: []tls.Certificate{cert},
@@ -113,7 +145,7 @@ func main() {
 		MinVersion:   tls.VersionTLS12,
 		MaxVersion:   tls.VersionTLS13,
 	}
-	// log.Println("TLS versions set between 1.2 and 1.3.")
+	log.Println("TLS versions set between 1.2 and 1.3.")
 
 	// Verify Server Availability: (Additional)
 	conn, err := net.DialTimeout("tcp", net.JoinHostPort(*serverName, *serverPort), 5*time.Second)
@@ -149,8 +181,8 @@ func main() {
 	log.Printf("Response Status: %s", resp.Status)
 	// If `c.DoRequest` internally constructs its own request,
 	// move the dumping logic there.
-	// log.Println("Additional ends here.")
-	// fmt.Println("Additional ends here.")
+	log.Println("Additional ends here.")
+	fmt.Println("Additional ends here.")
 
 	// Additional ends here. // Can be safely REMOVED
 

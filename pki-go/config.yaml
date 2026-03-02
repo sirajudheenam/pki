@@ -3,8 +3,10 @@ server:
   certBaseDir: "certs"
   certSubDir: "server"
   port: "8443"
+  serverRootPath: "/hello"
 client:
   hostName: "localhost"
   certBaseDir: "certs"
   certSubDir: "client"
   port: "8443"
+  serverRootPath: "/hello"

@@ -9,17 +9,19 @@ import (
 )
 
 type ServerConfig struct {
-	Hostname    string `yaml:"hostname"`
-	Port        string `yaml:"port"`
-	CertBaseDir string `yaml:"certBaseDir"`
-	CertSubDir  string `yaml:"certSubDir"`
+	Hostname       string `yaml:"hostname"`
+	Port           string `yaml:"port"`
+	CertBaseDir    string `yaml:"certBaseDir"`
+	CertSubDir     string `yaml:"certSubDir"`
+	ServerRootPath string `yaml:"serverRootPath"`
 }
 
 type ClientConfig struct {
-	Hostname    string `yaml:"hostname"`
-	Port        string `yaml:"port"`
-	CertBaseDir string `yaml:"certBaseDir"`
-	CertSubDir  string `yaml:"certSubDir"`
+	Hostname       string `yaml:"hostname"`
+	Port           string `yaml:"port"`
+	CertBaseDir    string `yaml:"certBaseDir"`
+	CertSubDir     string `yaml:"certSubDir"`
+	ServerRootPath string `yaml:"serverRootPath"`
 }
 
 // Config represents the server configuration
@@ -28,28 +30,40 @@ type Config struct {
 	Client ClientConfig `yaml:"client"`
 }
 
-// LoadConfig loads configuration from environment variables or config file
-func LoadConfig() (*ServerConfig, error) {
-	config := &ServerConfig{
-		Hostname:    "localhost", // default hostname
-		Port:        "8443",      // default port
-		CertBaseDir: "certs",     // default base directory for certificates
-		CertSubDir:  "server",    // default subdirectory for server certificates
+// LoadServerConfig loads server configuration from environment variables or config file
+func LoadConfig() (*Config, error) {
+	serverConfig := &ServerConfig{
+		Hostname:       "localhost", // default hostname
+		Port:           "8443",      // default port
+		CertBaseDir:    "certs",     // default base directory for certificates
+		CertSubDir:     "server",    // default subdirectory for server certificates
+		ServerRootPath: "/hello",    // default handler path
+	}
+	clientConfig := &ClientConfig{
+		Hostname:       "localhost", // default hostname
+		Port:           "8443",      // default port
+		CertBaseDir:    "certs",     // default base directory for certificates
+		CertSubDir:     "server",    // default subdirectory for server certificates
+		ServerRootPath: "/hello",    // default handler path
+	}
+	config := &Config{
+		Server: *serverConfig,
+		Client: *clientConfig,
 	}
 
 	fmt.Printf("config (before loading config.yaml) : %+v \n", config)
 	// Check environment variables first
 	if hostname := os.Getenv("HOSTNAME"); hostname != "" {
-		config.Hostname = hostname
+		config.Server.Hostname = hostname
 	}
 	if port := os.Getenv("PORT"); port != "" {
-		config.Port = port
+		config.Server.Port = port
 	}
-	if certDir := os.Getenv("SERVER_CERT_BASE_DIR"); certDir != "" {
-		config.CertBaseDir = certDir
+	if certDir := os.Getenv("CERT_BASE_DIR"); certDir != "" {
+		config.Server.CertBaseDir = certDir
 	}
 	if certSubDir := os.Getenv("SERVER_CERT_SUB_DIR"); certSubDir != "" {
-		config.CertSubDir = certSubDir
+		config.Server.CertSubDir = certSubDir
 	}
 
 	// Try to load config.yaml if it exists
@@ -72,8 +86,10 @@ func LoadConfig() (*ServerConfig, error) {
 
 // GetCertificatePath returns the full path to the certificate directory
 func (c *ServerConfig) GetCertificatePath() string {
-	fmt.Printf("c.CertBaseDir: %s\n", c.CertBaseDir)
-	fmt.Printf("c.Hostname: %s\n", c.Hostname)
-	fmt.Printf("c.CertSubDir: %s\n", c.CertSubDir)
+	return filepath.Join(c.CertBaseDir, c.Hostname, c.CertSubDir)
+}
+
+// GetCertificatePath returns the full path to the certificate directory
+func (c *ClientConfig) GetCertificatePath() string {
 	return filepath.Join(c.CertBaseDir, c.Hostname, c.CertSubDir)
 }

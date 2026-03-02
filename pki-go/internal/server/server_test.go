@@ -1,9 +1,12 @@
+// pki/pki-go/internal/server/server_test.go
 package server
 
 import (
 	"context"
 	"crypto/tls"
+	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -20,13 +23,29 @@ const (
 	urlToCheck = "https://" + testHost + ":" + testPort + "/hello"
 )
 
+func getFreePort() (string, error) {
+	listener, err := net.Listen("tcp", ":0")
+	if err != nil {
+		return "", err
+	}
+	defer listener.Close()
+	addr := listener.Addr().(*net.TCPAddr)
+	return fmt.Sprintf("%d", addr.Port), nil
+}
+
 func setupTestCertificates(t *testing.T) string {
+	// get free port
+	freePort, err := getFreePort()
+	if err != nil {
+
+	}
 	// Use existing certificates
 	cfg := &config.ServerConfig{
-		Hostname:    testHost,
-		Port:        testPort,
-		CertBaseDir: "../../certs",
-		CertSubDir:  "server",
+		Hostname:       testHost,
+		Port:           freePort,
+		ServerRootPath: "/hello",
+		CertBaseDir:    "../../certs",
+		CertSubDir:     "server",
 	}
 
 	// Verify that the certificate directory exists
@@ -44,22 +63,25 @@ func TestServerStartStop(t *testing.T) {
 	// Set up test certificates
 	certDir := setupTestCertificates(t)
 
+	port, err := getFreePort()
+	if err != nil {
+		t.Fatalf("Unable to find free port: %v", err)
+	}
+
 	// Create a new server
-	srv, err := NewServer(":"+testPort, certDir)
+	srv, err := NewServer(":"+port, certDir)
 	if err != nil {
 		t.Fatalf("failed to create server: %v", err)
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer func() {
-		cancel()
-	}()
+	defer cancel()
 
 	// Start server asynchronously
 	errCh := srv.StartAsync()
 	defer func() {
 		if err := srv.Shutdown(ctx); err != nil {
-			t.Errorf("failed to shutdown server: %v", err)
+			t.Errorf("failed to shutdown server: %v\n", err)
 		}
 	}()
 
@@ -70,7 +92,7 @@ func TestServerStartStop(t *testing.T) {
 	clientCertPath := filepath.Join("../../certs", testHost, "client")
 	c, err := client.NewClient(urlToCheck, clientCertPath)
 	if err != nil {
-		t.Fatalf("Failed to create client: %v", err)
+		t.Fatalf("Failed to create client: %v\n", err)
 	}
 
 	// Make request
@@ -80,7 +102,7 @@ func TestServerStartStop(t *testing.T) {
 	}
 	defer func() {
 		if err := resp.Body.Close(); err != nil {
-			t.Errorf("failed to close response body: %v", err)
+			t.Errorf("failed to close response body: %v\n", err)
 		}
 	}()
 	if resp.StatusCode != http.StatusOK {
@@ -88,13 +110,14 @@ func TestServerStartStop(t *testing.T) {
 	}
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		t.Errorf("Unable to read Response Body")
+		t.Errorf("Unable to read Response Body\n")
 	}
 
 	expected := "Hello, client1!\n"
 	if string(body) != expected {
-		t.Errorf("expected %q, got %q", expected, string(body))
+		t.Errorf("expected %q, got %q \n", expected, string(body))
 	}
+	fmt.Printf("Expected: %s and Got %v \n", expected, string(body))
 
 	// Case 2: client without certs should fail
 	insecureClient := &http.Client{

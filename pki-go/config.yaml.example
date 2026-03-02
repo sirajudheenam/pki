@@ -1,4 +1,10 @@
-hostname: localhost
-port: "8443"
-cert_base_dir: "certs"
-cert_sub_dir: "server"
+server:
+  hostName: "localhost"
+  certBaseDir: "certs"
+  certSubDir: "server"
+  port: "8443"
+client:
+  hostName: "localhost"
+  certBaseDir: "certs"
+  certSubDir: "client"
+  port: "8443"

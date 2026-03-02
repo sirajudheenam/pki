@@ -3,10 +3,16 @@ VERSION ?= 1.0.0
 DOCKER_USER = sirajudheenam
 IMAGES = server client
 IMAGE_PREFIX = go-mtls-
-HOSTNAME ?= go-mtls-server-service
-CERT_DIR = certs
+HOSTNAME ?= localhost ## go-mtls-server-service
+CERT_BASE_DIR = certs
 SERVER_PORT ?= 8443
 GO_FILES = $(shell find . -type f -name '*.go')
+# Additional
+PKI_VERSION=local
+SERVER_ROOT_PATH=/hello
+CERT_BASE_DIR=certs
+SERVER_CERT_SUB_DIR=server
+CLIENT_CERT_SUB_DIR=client
 
 .PHONY: all build test tag push release clean cert-gen cert-clean run-server run-client help
 
@@ -15,14 +21,14 @@ all: test build tag
 ## Generate certificates for the given hostname (default: localhost)
 cert-gen:
 	@echo "🔐 Generating certificates for $(HOSTNAME)..."
-	@mkdir -p $(CERT_DIR)/{ca,server,client}
+	@mkdir -p $(CERT_BASE_DIR)/$(HOSTNAME)/{ca,server,client}
 	@cd .. && bash scripts/create-certs.sh all $(HOSTNAME)
-	@echo "✅ Certificates generated in $(CERT_DIR) directory"
+	@echo "✅ Certificates generated in $(CERT_BASE_DIR) directory"
 
 ## Remove all generated certificates
 cert-clean:
 	@echo "🧹 Cleaning up certificates..."
-	@rm -rf $(CERT_DIR)/*
+	@rm -rf $(CERT_BASE_DIR)/*
 	@echo "✅ Certificates cleaned"
 
 ## Run server locally
@@ -30,7 +36,7 @@ run-server: cert-gen
 	@echo "🚀 Starting server on port $(SERVER_PORT) for $(HOSTNAME)..."
 	HOSTNAME=$(HOSTNAME) \
 	PORT=$(SERVER_PORT) \
-	CERT_BASE_DIR=$(CERT_DIR) \
+	CERT_BASE_DIR=$(CERT_BASE_DIR) \
 	go run cmd/server/main.go
 
 ## Run client locally
@@ -39,7 +45,7 @@ run-client: cert-gen
 	SERVER_NAME=$(HOSTNAME) \
 	SERVER_PORT=$(SERVER_PORT) \
 	SERVER_ROOT_PATH=/hello \
-	CLIENT_CERTS=./$(CERT_DIR)/$(HOSTNAME)/client \
+	CLIENT_CERTS=./$(CERT_BASE_DIR)/$(HOSTNAME)/$(CLIENT_CERT_SUB_DIR) \
 	go run cmd/client/main.go
 
 ## Run tests with coverage
