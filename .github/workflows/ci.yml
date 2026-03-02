@@ -20,7 +20,7 @@ jobs:
       - name: Test
         run: |
           cd pki-go
-          go test -v -race -coverprofile=coverage.out -covermode=atomic ./...
+          go test -v -race -coverprofile=coverage.out -covermode=atomic ./cmd/... ./internal/...
           go tool cover -html=coverage.out -o coverage.html
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
@@ -41,9 +41,11 @@ jobs:
     needs: test
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Build Server Image
-        run: docker build -f Dockerfile.server -t sirajudheenam/go-mtls-server:${{ github.sha }} .
+        run: |
+          cd pki-go
+          docker build -f Dockerfile.server -t sirajudheenam/go-mtls-server:${{ github.sha }} .
       - name: Build Client Image
         run: docker build -f Dockerfile.client -t sirajudheenam/go-mtls-client:${{ github.sha }} .
       - name: Login to DockerHub
