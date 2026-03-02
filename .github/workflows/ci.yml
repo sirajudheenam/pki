@@ -16,7 +16,7 @@ jobs:
         with:
           go-version: "1.26.0"
       - name: Generate test certificates
-        run: bash scripts/create-certs.sh all go-mtls-server-service
+        run: bash scripts/create-certs.sh all localhost
       - name: Test
         run: |
           cd pki-go
