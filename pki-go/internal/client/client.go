@@ -41,8 +41,7 @@ func NewClient(addr, certDir string) (*Client, error) {
 
 	// /* Ensure a proper close and error check */
 	defer func() {
-		err := certDirFile.Close()
-		if err != nil {
+		if err := certDirFile.Close(); err != nil {
 			log.Fatalf("Unable to close file: %v", err)
 		}
 	}()

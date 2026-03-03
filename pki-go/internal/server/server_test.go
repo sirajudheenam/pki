@@ -37,7 +37,7 @@ func setupTestCertificates(t *testing.T) string {
 	// get free port
 	freePort, err := getFreePort()
 	if err != nil {
-
+		fmt.Printf("unable to find free port: %v", err)
 	}
 	// Use existing certificates
 	cfg := &config.ServerConfig{

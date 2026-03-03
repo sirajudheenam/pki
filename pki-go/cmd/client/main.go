@@ -1,19 +1,12 @@
+// pki-go/cmd/client/main.go
 package main
 
 import (
-	"crypto/tls"
-	"crypto/x509"
 	"flag"
-	"fmt"
 	"io"
 	"log"
-	"net"
-	"net/http"
-	"net/http/httputil"
 	"os"
-	"path/filepath"
 	"strings"
-	"time"
 
 	internalClient "github.com/sirajudheenam/pki/pki-go/internal/client"
 	"github.com/sirajudheenam/pki/pki-go/internal/config"
@@ -21,7 +14,11 @@ import (
 
 func main() {
 
+	// read config.yaml file and assign
 	cfg, err := config.LoadConfig()
+	if err != nil {
+		log.Printf("error loading config from file: %v", err)
+	}
 	defaultServerName := cfg.Client.Hostname
 	defaultPort := cfg.Client.Port
 	defaultServerRootPath := cfg.Client.ServerRootPath
@@ -33,7 +30,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	// Override defaults with environment variables if set
+	// Override config defaults with environment variables if set
 	envServerName := os.Getenv("SERVER_NAME")
 	if envServerName != "" {
 		safe := strings.ReplaceAll(envServerName, "\n", "")
@@ -66,7 +63,7 @@ func main() {
 		defaultClientCertPath = strings.Join([]string{cwd, "/", envCertPath, "/", envServerName, "/", envSubPath}, "")
 	}
 
-	// Default values
+	// Default values for prod
 	if defaultServerName == "" {
 		defaultServerName = "go-mtls-server-service"
 	}
@@ -83,8 +80,6 @@ func main() {
 		defaultClientCertPath = strings.Join([]string{cwd, "/", "certs", "/", defaultServerName, "/", "client"}, "")
 	}
 
-	log.Printf("SERVER_NAME: defaultClientCertPath Path: %q", defaultClientCertPath)
-
 	// Command-line flags (take precedence over env vars)
 
 	serverName := flag.String("server-name", defaultServerName, "Server name")
@@ -94,95 +89,10 @@ func main() {
 	flag.Parse()
 
 	serverURL := strings.Join([]string{"https://", *serverName, ":", *serverPort, *serverRootPath}, "")
+
 	log.Printf("Connecting to server at: %q", serverURL)
 
-	// Additional starts here. // Can be safely REMOVED
-
-	log.Println("Additional starts here.")
-	fmt.Println("Additional starts here.")
-
-	certFile := filepath.Join(*certPath, "client.cert.pem")
-	keyFile := filepath.Join(*certPath, "client.key.pem")
-	cert, err := tls.LoadX509KeyPair(certFile, keyFile)
-	if err != nil {
-		log.Fatalf("Failed loading client cert/key: %v", err)
-	}
-	log.Println("Successfully loaded client certificate and key.")
-
-	root, err := os.OpenRoot(*certPath)
-	if err != nil {
-		log.Fatalf("Unable Load *certPath")
-	} else {
-		log.Printf("OpenRoot: %v", &root)
-	}
-
-	certDirFile, err := root.Open("inter-root-combined.cert.pem")
-	if err != nil {
-		log.Fatalf("unable to load inter-root-combined.cert.pem")
-	} else {
-		log.Println("loaded inter-root-combined.cert.pem")
-	}
-
-	caCert, err := io.ReadAll(certDirFile)
-	if err != nil {
-		log.Printf("Unable to load caCert")
-	} else {
-		log.Println("caCert loaded")
-	}
-
-	caCertPool := x509.NewCertPool()
-	caCertPool.AppendCertsFromPEM(caCert)
-
-	log.Printf("caCertPool: %v", &caCertPool)
-	log.Println("Successfully appended CA certificate to pool.")
-
-	tlsConfig := &tls.Config{
-		Certificates: []tls.Certificate{cert},
-		RootCAs:      caCertPool,
-		MinVersion:   tls.VersionTLS12,
-		MaxVersion:   tls.VersionTLS13,
-	}
-	log.Println("TLS versions set between 1.2 and 1.3.")
-
-	// Verify Server Availability: (Additional)
-	conn, err := net.DialTimeout("tcp", net.JoinHostPort(*serverName, *serverPort), 5*time.Second)
-	if err != nil {
-		log.Printf("Server not available: %v\n", err)
-		return
-	}
-	log.Println("Server is available.")
-	conn.Close()
-
-	// Request  Dump
-	req, err := http.NewRequest("GET", serverURL, nil)
-	if err != nil {
-		log.Fatalf("Failed to create HTTP request: %v", err)
-	}
-	dump, err := httputil.DumpRequestOut(req, true)
-	if err != nil {
-		log.Fatalf("Failed to dump HTTP request: %v", err)
-	}
-	log.Printf("HTTP Request (DUMP): %s\n", dump)
-
-	client := &http.Client{Transport: &http.Transport{TLSClientConfig: tlsConfig}}
-	resp, err := client.Do(req)
-	if err != nil {
-		log.Fatalf("HTTP request failed: %v", err)
-	}
-	defer func() {
-		if err := resp.Body.Close(); err != nil {
-			log.Printf("Unable to Close the response body: %v", err)
-		}
-	}()
-
-	log.Printf("Response Status: %s", resp.Status)
-	// If `c.DoRequest` internally constructs its own request,
-	// move the dumping logic there.
-	log.Println("Additional ends here.")
-	fmt.Println("Additional ends here.")
-
-	// Additional ends here. // Can be safely REMOVED
-
+	// Version 1
 	// Create client
 	c, err := internalClient.NewClient(serverURL, *certPath)
 	if err != nil {
@@ -190,18 +100,49 @@ func main() {
 	}
 
 	// Make request
-	respo, err := c.DoRequest()
+	resp, err := c.DoRequest()
 	if err != nil {
 		log.Fatal("\n Request failed:", err)
 	}
 
-	body, err := io.ReadAll(respo.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		log.Fatal("\n Failed to read response body:", err)
+		log.Fatal("\n 1 Failed to read response body:", err)
 	}
-	if err := respo.Body.Close(); err != nil {
+	if err := resp.Body.Close(); err != nil {
 		log.Fatal("\n Failed to close response body:", err)
 	}
 
-	log.Printf("Server responded with: %q", string(body))
+	log.Printf("1. Server responded with: %q", string(body))
+
+	// Version 2
+	clientConfig := &config.ClientConfig{
+		Hostname:       defaultServerName,
+		Port:           defaultPort,
+		CertBaseDir:    "certs",
+		CertSubDir:     "client",
+		ServerRootPath: "/hello",
+	}
+
+	_ = certPath
+	c2, err := internalClient.NewClientV2(clientConfig)
+	if err != nil {
+		log.Fatalf("unable to create a client : %v", err)
+	}
+
+	resp2, err := c2.DoRequest()
+	if err != nil {
+		log.Fatal("\n 2 Failed to read response body:", err)
+	}
+
+	body2, err := io.ReadAll(resp2.Body)
+	if err != nil {
+		log.Fatal("\n Failed to read response body:", err)
+	}
+	log.Printf("2. Server responded with: %q", string(body2))
+	defer func() {
+		if err := resp2.Body.Close(); err != nil {
+			log.Fatal("\n Failed to close response body:", err)
+		}
+	}()
 }

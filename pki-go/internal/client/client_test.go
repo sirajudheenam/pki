@@ -24,6 +24,11 @@ const (
 )
 
 func setupTestCertificates(t *testing.T) (string, string) {
+	cwd, err := os.Getwd()
+	if err != nil {
+		fmt.Printf("error listing directory: %v", cwd)
+	}
+	fmt.Printf("current working directory %v\n", cwd)
 	// Use existing certificates
 	serverCertDir := filepath.Join("../../certs", testHost, "server")
 	clientCertDir := filepath.Join("../../certs", testHost, "client")

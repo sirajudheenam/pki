@@ -64,8 +64,8 @@ func NewServer(addr, certDir string) (*Server, error) {
 		Certificates:       []tls.Certificate{cert},
 		ClientCAs:          caCertPool,
 		ClientAuth:         tls.RequireAndVerifyClientCert,
-		MinVersion:         tls.VersionTLS11,
-		MaxVersion:         tls.VersionTLS12,
+		MinVersion:         tls.VersionTLS12,
+		MaxVersion:         tls.VersionTLS13,
 		InsecureSkipVerify: false, // keep this false for production
 	}
 
