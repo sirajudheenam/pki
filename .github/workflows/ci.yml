@@ -19,6 +19,8 @@ jobs:
         run: bash scripts/create-certs.sh all localhost
       - name: Test
         run: |
+          ls
+          pwd
           cd pki-go
           go test -v -race -coverprofile=coverage.out -covermode=atomic ./cmd/... ./internal/...
           go tool cover -html=coverage.out -o coverage.html
@@ -44,6 +46,8 @@ jobs:
       - uses: actions/checkout@v4
       - name: Build Server Image
         run: |
+          ls
+          pwd
           cd pki-go
           docker build -f Dockerfile.server -t sirajudheenam/go-mtls-server:${{ github.sha }} .
       - name: Build Client Image
