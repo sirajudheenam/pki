@@ -29,9 +29,14 @@ func setupTestCertificates(t *testing.T) (string, string) {
 		fmt.Printf("error listing directory: %v", cwd)
 	}
 	fmt.Printf("current working directory %v\n", cwd)
+
+	var testCertPath = "../../certs"
+	if testCertPath = os.Getenv("CI_TEST_CERT_PATH"); testCertPath != "" {
+		fmt.Printf("testCertPath is set to : %v", testCertPath)
+	}
 	// Use existing certificates
-	serverCertDir := filepath.Join("../../certs", testHost, "server")
-	clientCertDir := filepath.Join("../../certs", testHost, "client")
+	serverCertDir := filepath.Join(testCertPath, testHost, "server")
+	clientCertDir := filepath.Join(testCertPath, testHost, "client")
 
 	// Verify that the certificate directories exist
 	if _, err := os.Stat(serverCertDir); os.IsNotExist(err) {

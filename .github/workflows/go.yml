@@ -26,6 +26,7 @@ jobs:
         pwd
         ls
         cd pki-go
+        export CI_TEST_CERT_PATH="certs"
         go build -v ./...
 
     - name: Test
@@ -33,4 +34,5 @@ jobs:
         pwd
         ls
         cd pki-go
+        export CI_TEST_CERT_PATH="certs"
         go test -v ./...

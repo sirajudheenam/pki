@@ -23,6 +23,7 @@ jobs:
           pwd
           cd pki-go
           pwd
+          export CI_TEST_CERT_PATH="certs"
           go test -v -race -coverprofile=coverage.out -covermode=atomic ./cmd/... ./internal/...
           go tool cover -html=coverage.out -o coverage.html
       - name: Upload coverage to Codecov

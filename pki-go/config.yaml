@@ -10,3 +10,8 @@ client:
   certSubDir: "client"
   port: "8443"
   serverRootPath: "/hello"
+cert:
+  ci:
+    certPath: ./certs
+  local:
+    certPath: ../../cert
