@@ -27,7 +27,7 @@ jobs:
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
         with:
-          files: ./pki-go/coverage.out
+          files: pki-go/coverage.out
           flags: unittests
           name: codecov-umbrella
           verbose: true
