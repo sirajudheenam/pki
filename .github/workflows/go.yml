@@ -25,10 +25,12 @@ jobs:
       run: |
         pwd
         ls
-        go build -v pki-go/...
+        cd pki-go
+        go build -v ./...
 
     - name: Test
       run: |
         pwd
         ls
-        go test -v pki-go/...
+        cd pki-go
+        go test -v ./...
