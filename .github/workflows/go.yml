@@ -22,10 +22,19 @@ jobs:
         run: |
           pwd
           bash scripts/create-certs.sh all localhost
-          ls demo-pki
+          sleep 5;
+          mkdir -p ./pki-go/certs/localhost/{server, client}
+          ls ./demo-pki/localhost/client
+          ls ./demo-pki/localhost/server
+          ls ./demo-pki/localhost/root
+          cp ./demo-pki/localhost/client/* certs/localhost/client/
+          cp ./demo-pki/localhost/server/* certs/localhost/server/
+          cp ./demo-pki/localhost/root/* certs/localhost/server/
           cd pki-go
           pwd
           ls
+          ls ./certs/localhost/client
+          ls ./certs/localhost/server
           go test -v -race -coverprofile=coverage.out -covermode=atomic ./cmd/... ./internal/...
           go tool cover -html=coverage.out -o coverage.html
           go build -v ./...
