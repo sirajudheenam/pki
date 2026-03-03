@@ -30,10 +30,8 @@ func setupTestCertificates(t *testing.T) (string, string) {
 	}
 	fmt.Printf("current working directory %v\n", cwd)
 
-	var testCertPath = "../../certs"
-	if testCertPath = os.Getenv("CI_TEST_CERT_PATH"); testCertPath != "" {
-		fmt.Printf("testCertPath is set to : %v", testCertPath)
-	}
+	testCertPath := "../../../demo-pki"
+
 	// Use existing certificates
 	serverCertDir := filepath.Join(testCertPath, testHost, "server")
 	clientCertDir := filepath.Join(testCertPath, testHost, "client")

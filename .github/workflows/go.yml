@@ -21,17 +21,11 @@ jobs:
       - name: Test
         run: |
           pwd
-          echo "1 ls"
-          ls
           bash scripts/create-certs.sh all localhost
-          echo "2 ls"
-          ls
+          ls demo-pki
           cd pki-go
-          echo "3 ls"
-          ls
-          export CI_TEST_CERT_PATH="certs"
-          ls
           pwd
+          ls
           go test -v -race -coverprofile=coverage.out -covermode=atomic ./cmd/... ./internal/...
           go tool cover -html=coverage.out -o coverage.html
           go build -v ./...
