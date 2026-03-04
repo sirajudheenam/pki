@@ -20,28 +20,14 @@ jobs:
           go-version: "1.26.0"
       - name: Test
         run: |
-          pwd
-          # bash scripts/create-certs.sh all localhost
-          sleep 5;
-          ls
-          pwd
-          mkdir -p pki-go/certs/localhost/server
-          mkdir -p pki-go/certs/localhost/client
-          pwd
-          ls
-          ls demo-pki/
-          ls demo-pki/localhost/
-          ls demo-pki/localhost/client
-          ls demo-pki/localhost/server
-          ls demo-pki/localhost/root
-          cp demo-pki/localhost/client/* certs/localhost/client/
-          cp demo-pki/localhost/server/* certs/localhost/server/
-          cp demo-pki/localhost/root/* certs/localhost/server/
-          cd pki-go
-          pwd
-          ls
-          ls certs/localhost/client
-          ls certs/localhost/server
+          bash scripts/create-certs.sh all localhost
+          ls scripts/*
+          # mkdir -p pki-go/certs/localhost/server
+          # mkdir -p pki-go/certs/localhost/client
+          # cp demo-pki/localhost/client/* pki-go/certs/localhost/client/
+          # cp demo-pki/localhost/server/* pki-go/certs/localhost/server/
+          # cp demo-pki/localhost/root/* pki-go/certs/localhost/server/
+          cd pki-go          
           go test -v -race -coverprofile=coverage.out -covermode=atomic ./cmd/... ./internal/...
           go tool cover -html=coverage.out -o coverage.html
           go build -v ./...
