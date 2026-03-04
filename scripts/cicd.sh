@@ -6,6 +6,8 @@ ls /home/runner/work/pki/pki/*
 ls /home/runner/work/pki/pki/pki-go/*
 ls /home/runner/work/pki/pki/pki-go/certs/*
 ls /home/runner/work/pki/pki/pki-go/certs/localhost/*
+ls /home/runner/work/pki/pki/pki-go/certs/localhost/server/*
+ls /home/runner/work/pki/pki/pki-go/certs/localhost/client/*
 ls /home/runner/work/pki/pki/demo-pki/localhost/*
 ls /home/runner/work/pki/pki/demo-pki/localhost/server/*
 ls /home/runner/work/pki/pki/demo-pki/localhost/root/*
