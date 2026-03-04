@@ -21,12 +21,7 @@ jobs:
       - name: Test
         run: |
           bash scripts/create-certs.sh all localhost
-          ls scripts/*
-          # mkdir -p pki-go/certs/localhost/server
-          # mkdir -p pki-go/certs/localhost/client
-          # cp demo-pki/localhost/client/* pki-go/certs/localhost/client/
-          # cp demo-pki/localhost/server/* pki-go/certs/localhost/server/
-          # cp demo-pki/localhost/root/* pki-go/certs/localhost/server/
+          bash scripts/cicd.sh 
           cd pki-go          
           go test -v -race -coverprofile=coverage.out -covermode=atomic ./cmd/... ./internal/...
           go tool cover -html=coverage.out -o coverage.html
