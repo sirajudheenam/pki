@@ -24,11 +24,6 @@ const (
 )
 
 func setupTestCertificates(t *testing.T) (string, string) {
-	cwd, err := os.Getwd()
-	if err != nil {
-		fmt.Printf("error listing directory: %v", cwd)
-	}
-	fmt.Printf("current working directory %v\n", cwd)
 
 	testCertPath := "../../certs"
 
@@ -36,21 +31,12 @@ func setupTestCertificates(t *testing.T) (string, string) {
 	serverCertDir := filepath.Join(testCertPath, testHost, "server")
 	clientCertDir := filepath.Join(testCertPath, testHost, "client")
 
-	fmt.Printf("serverCertDir %v\n", serverCertDir)
-	fmt.Printf("clientCertDir %v\n", clientCertDir)
-
 	// Verify that the certificate directories exist
 	if _, err := os.Stat(serverCertDir); os.IsNotExist(err) {
 		t.Fatalf("Server certificate directory not found at %s", serverCertDir)
 	}
-	if err != nil {
-		fmt.Printf("ERROR : %v", err)
-	}
 	if _, err := os.Stat(clientCertDir); os.IsNotExist(err) {
 		t.Fatalf("Client certificate directory not found at %s", clientCertDir)
-	}
-	if err != nil {
-		fmt.Printf("ERROR : %v", err)
 	}
 	return serverCertDir, clientCertDir
 }

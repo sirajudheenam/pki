@@ -72,8 +72,6 @@ func NewClientV2(cfg Config) (*ClientV2, error) {
 		log.Fatalf("Failed loading client cert/key: %v", err)
 	}
 
-	log.Println("Successfully loaded client certificate and key.")
-
 	root, err := os.OpenRoot(certPath)
 	if err != nil {
 		log.Fatalf("Unable Load *certPath")
@@ -82,22 +80,15 @@ func NewClientV2(cfg Config) (*ClientV2, error) {
 	certDirFile, err := root.Open("inter-root-combined.cert.pem")
 	if err != nil {
 		log.Fatalf("unable to load inter-root-combined.cert.pem")
-	} else {
-		log.Println("loaded inter-root-combined.cert.pem")
 	}
 
 	caCert, err := io.ReadAll(certDirFile)
 	if err != nil {
 		log.Printf("Unable to load caCert")
-	} else {
-		log.Println("caCert loaded")
 	}
 
 	caCertPool := x509.NewCertPool()
 	caCertPool.AppendCertsFromPEM(caCert)
-
-	log.Printf("caCertPool: %v", &caCertPool)
-	log.Println("Successfully appended CA certificate to pool.")
 
 	tlsConfig := &tls.Config{
 		Certificates: []tls.Certificate{cert},
@@ -118,7 +109,7 @@ func NewClientV2(cfg Config) (*ClientV2, error) {
 	if err != nil {
 		log.Printf("Server not available: %v\n", err)
 	}
-	log.Println("Server is available.")
+
 	if err := conn.Close(); err != nil {
 		fmt.Printf("Unbale to close connection: %v", err)
 	}

@@ -3,6 +3,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"io"
 	"log"
 	"os"
@@ -34,30 +35,27 @@ func main() {
 	envServerName := os.Getenv("SERVER_NAME")
 	if envServerName != "" {
 		safe := strings.ReplaceAll(envServerName, "\n", "")
-		log.Printf("Using env: SERVER_NAME: %q", safe)
 		defaultServerName = safe
 	}
 	envServerPort := os.Getenv("SERVER_PORT")
 	if envServerPort != "" {
 		safe := strings.ReplaceAll(envServerPort, "\n", "")
-		log.Printf("Using env: SERVER_PORT: %q", safe)
 		defaultPort = safe
 	}
 	envServerRootPath := os.Getenv("SERVER_ROOT_PATH")
 	if envServerRootPath != "" {
 		safe := strings.ReplaceAll(envServerRootPath, "\n", "")
-		log.Printf("Using env: SERVER_ROOT_PATH: %q", safe)
 		defaultServerRootPath = safe
 	}
 	envCertPath := os.Getenv("CERT_BASE_DIR")
 	if envCertPath != "" {
 		safe := strings.ReplaceAll(envCertPath, "\n", "")
-		log.Printf("Using env: CERT_BASE_DIR: %q", safe)
+		envCertPath = safe
 	}
 	envSubPath := os.Getenv("CLIENT_CERT_SUB_DIR")
 	if envSubPath != "" {
 		safe := strings.ReplaceAll(envSubPath, "\n", "")
-		log.Printf("Using env: CLIENT_CERT_SUB_DIR: %q", safe)
+		envSubPath = safe
 	}
 	if envCertPath != "" && envServerName != "" && envSubPath != "" {
 		defaultClientCertPath = strings.Join([]string{cwd, "/", envCertPath, "/", envServerName, "/", envSubPath}, "")
@@ -90,8 +88,6 @@ func main() {
 
 	serverURL := strings.Join([]string{"https://", *serverName, ":", *serverPort, *serverRootPath}, "")
 
-	log.Printf("Connecting to server at: %q", serverURL)
-
 	// Version 1
 	// Create client
 	c, err := internalClient.NewClient(serverURL, *certPath)
@@ -113,7 +109,8 @@ func main() {
 		log.Fatal("\n Failed to close response body:", err)
 	}
 
-	log.Printf("1. Server responded with: %q", string(body))
+	log.Println(string(body))
+	fmt.Println(string(body))
 
 	// Version 2
 	clientConfig := &config.ClientConfig{
@@ -139,10 +136,12 @@ func main() {
 	if err != nil {
 		log.Fatal("\n Failed to read response body:", err)
 	}
-	log.Printf("2. Server responded with: %q", string(body2))
 	defer func() {
 		if err := resp2.Body.Close(); err != nil {
 			log.Fatal("\n Failed to close response body:", err)
 		}
 	}()
+	log.Println(string(body2))
+	fmt.Println(string(body2))
+
 }

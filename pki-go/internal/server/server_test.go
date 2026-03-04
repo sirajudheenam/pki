@@ -28,7 +28,11 @@ func getFreePort() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	defer listener.Close()
+	defer func() {
+		if err := listener.Close(); err != nil {
+			fmt.Println("unable to close the listener")
+		}
+	}()
 	addr := listener.Addr().(*net.TCPAddr)
 	return fmt.Sprintf("%d", addr.Port), nil
 }
