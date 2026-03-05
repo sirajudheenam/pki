@@ -8,11 +8,10 @@ WORKDIR /app
 # COPY go.mod ./
 # RUN go mod download
 
-RUN go mod init github.com/sirajudheenam/pki/pki-go
+RUN go mod init github.com/sirajudheenam/pki-mtls/pki-go
 RUN go mod tidy
 
 # Copy server code
-# COPY server.go .
 COPY . .
 
 # Build the Go binary

@@ -1,78 +1,289 @@
-# This config was automatically generated from your source code
-# Stacks detected: artifact:go-executable:,deps:go:pki-go
 version: 2.1
+
+executors:
+  go-docker:
+    docker:
+      - image: cimg/go:1.26
+    working_directory: ~/project/pki-mtls/pki-go
+
+  docker-compose:
+    machine:
+      image: ubuntu-2204:2023.07.1
+    working_directory: ~/project/pki-mtls/pki-go
+
 jobs:
-  test-go:
-    # Install go modules and run tests
-    docker:
-      - image: cimg/go:1.26
-    working_directory: ~/project/pki-go
+  # Generate certificates needed for testing
+  generate-certs:
+    executor: go-docker
     steps:
       - checkout:
-          path: ~/project
+          path: ~/project/pki-mtls
+      - run:
+          name: Install bash for cert generation
+          command: sudo apt-get update && sudo apt-get install -y bash openssl
+      - run:
+          name: Generate certificates
+          command: make cert-gen SERVER_NAME=go-mtls-server-service
+      - persist_to_workspace:
+          root: ~/project/pki-mtls/pki-go
+          paths:
+            - certs
+
+  # Lint and format check
+  lint:
+    executor: go-docker
+    steps:
+      - checkout:
+          path: ~/project/pki-mtls
       - restore_cache:
-          key: go-mod-{{ checksum "go.sum" }}
+          keys:
+            - go-mod-v1-{{ checksum "go.sum" }}
+            - go-mod-v1-
+      - run:
+          name: Download Go modules
+          command: go mod download
+      - save_cache:
+          key: go-mod-v1-{{ checksum "go.sum" }}
+          paths:
+            - /home/circleci/go/pkg/mod
+      - run:
+          name: Install golangci-lint
+          command: |
+            curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.55.2
+      - run:
+          name: Run linters
+          command: make lint
+
+  # Run gosec security scanner
+  security-scan:
+    executor: go-docker
+    steps:
+      - checkout:
+          path: ~/project/pki-mtls
+      - restore_cache:
+          keys:
+            - go-mod-v1-{{ checksum "go.sum" }}
+            - go-mod-v1-
       - run:
           name: Download Go modules
           command: go mod download
       - run:
-          name: Print go mod help instructions
-          command: "echo \"go mod download will fail if you have private repositories \nOne way to fix this for private go modules that are hosted in github:\n  1. Add a GITHUB_TOKEN and GITHUB_USER to an org context. Please refer to https://circleci.com/docs/contexts/ for more informaiton on how to use contexts.\n  2. Add a .circleci/config.yml to your repository or use this config.yml as a starting template\n  3. Configure the jobs to use the newly created context which includes GITHUB_TOKEN and GITHUB_USER  \n  4. Before downloading the modules you will need to add a step to execute \\\"go env -w GOPRIVATE=github.com/<OrgNameHere>\\\". \n\tThis allows go mod to install private repos under OrgNameHere.\n  5. You will also need to run \\\"git config --global url.\\\"https://$GITHUB_USER:$GITHUB_TOKEN@github.com/<OrgNameHere>/\\\".insteadOf \\\"https://github.com/<OrgNameHere>/\\\"\\\"\n  6. Finally include the \\\"go mod download\\\" it should be able to fetch your private libraries now. \nFor gitlab private go modules, follow the same instructions as above but include your GITLAB_TOKEN and GITLAB_USER.\nThen use gitlab.com instead of github.com in steps 4 and 5.\nSee https://go.dev/ref/mod#private-modules for more details.\""
-          when: on_fail
+          name: Install gosec
+          command: go install github.com/securego/gosec/v2/cmd/gosec@latest
+      - run:
+          name: Run gosec security scan
+          command: make gosec
+
+  # Run tests with coverage
+  test:
+    executor: go-docker
+    steps:
+      - checkout:
+          path: ~/project/pki-mtls
+      - attach_workspace:
+          at: ~/project/pki-mtls/pki-go
+      - restore_cache:
+          keys:
+            - go-mod-v1-{{ checksum "go.sum" }}
+            - go-mod-v1-
+      - run:
+          name: Download Go modules
+          command: go mod download
       - save_cache:
-          key: go-mod-{{ checksum "go.sum" }}
+          key: go-mod-v1-{{ checksum "go.sum" }}
           paths:
             - /home/circleci/go/pkg/mod
       - run:
-          name: Run tests
-          command: gotestsum --junitfile junit.xml
+          name: Run tests with coverage
+          command: make test-only
+      - run:
+          name: Generate coverage report
+          command: |
+            go tool cover -func=coverage.out | tee coverage.txt
       - store_test_results:
-          path: junit.xml
-  build-go-executables:
-    # Build go executables and store them as artifacts
-    docker:
-      - image: cimg/go:1.26
+          path: coverage.out
+      - store_artifacts:
+          path: coverage.html
+          destination: coverage-report
+      - store_artifacts:
+          path: coverage.txt
+          destination: coverage-summary
+
+  # Build Docker images
+  build-docker-images:
+    executor: docker-compose
     steps:
       - checkout:
-          path: ~/project
-      - restore_cache:
-          key: go-mod-{{ checksum "go.sum" }}
+          path: ~/project/pki-mtls
+      - attach_workspace:
+          at: ~/project/pki-mtls/pki-go
       - run:
-          name: Download Go modules
-          command: go mod download
+          name: Determine version from git tag
+          command: |
+            # Get semantic version from git tag, fallback to 1.0.0
+            if git describe --tags --exact-match 2>/dev/null; then
+              SEMANTIC_VERSION=$(git describe --tags --exact-match | sed 's/^v//')
+            else
+              SEMANTIC_VERSION="1.0.0"
+            fi
+            echo "export SEMANTIC_VERSION=${SEMANTIC_VERSION}" >> $BASH_ENV
+            echo "export GIT_SHA=${CIRCLE_SHA1:0:7}" >> $BASH_ENV
+            echo "Semantic version: ${SEMANTIC_VERSION}"
+            echo "Git SHA: ${CIRCLE_SHA1:0:7}"
       - run:
-          name: Print go mod help instructions
-          command: "echo \"go mod download will fail if you have private repositories \nOne way to fix this for private go modules that are hosted in github:\n  1. Add a GITHUB_TOKEN and GITHUB_USER to an org context. Please refer to https://circleci.com/docs/contexts/ for more informaiton on how to use contexts.\n  2. Add a .circleci/config.yml to your repository or use this config.yml as a starting template\n  3. Configure the jobs to use the newly created context which includes GITHUB_TOKEN and GITHUB_USER  \n  4. Before downloading the modules you will need to add a step to execute \\\"go env -w GOPRIVATE=github.com/<OrgNameHere>\\\". \n\tThis allows go mod to install private repos under OrgNameHere.\n  5. You will also need to run \\\"git config --global url.\\\"https://$GITHUB_USER:$GITHUB_TOKEN@github.com/<OrgNameHere>/\\\".insteadOf \\\"https://github.com/<OrgNameHere>/\\\"\\\"\n  6. Finally include the \\\"go mod download\\\" it should be able to fetch your private libraries now. \nFor gitlab private go modules, follow the same instructions as above but include your GITLAB_TOKEN and GITLAB_USER.\nThen use gitlab.com instead of github.com in steps 4 and 5.\nSee https://go.dev/ref/mod#private-modules for more details.\""
-          when: on_fail
-      - save_cache:
-          key: go-mod-{{ checksum "go.sum" }}
+          name: Build Docker images using Makefile
+          command: make build VERSION=${SEMANTIC_VERSION}
+      - run:
+          name: Tag images with semantic version, git SHA, and latest
+          command: |
+            # Tag with semantic version and latest (via Makefile)
+            make tag VERSION=${SEMANTIC_VERSION} BUILD_VERSION=${SEMANTIC_VERSION}
+
+            # Additionally tag with git SHA for traceability
+            docker tag sirajudheenam/go-mtls-server:${SEMANTIC_VERSION} sirajudheenam/go-mtls-server:${GIT_SHA}
+            docker tag sirajudheenam/go-mtls-client:${SEMANTIC_VERSION} sirajudheenam/go-mtls-client:${GIT_SHA}
+
+            # Show all tags
+            echo "==> Docker images tagged:"
+            docker images | grep "sirajudheenam/go-mtls"
+      - run:
+          name: Save Docker images
+          command: |
+            mkdir -p ~/docker-cache
+            docker save sirajudheenam/go-mtls-server:${SEMANTIC_VERSION} \
+                        sirajudheenam/go-mtls-server:${GIT_SHA} \
+                        sirajudheenam/go-mtls-server:latest -o ~/docker-cache/server.tar
+            docker save sirajudheenam/go-mtls-client:${SEMANTIC_VERSION} \
+                        sirajudheenam/go-mtls-client:${GIT_SHA} \
+                        sirajudheenam/go-mtls-client:latest -o ~/docker-cache/client.tar
+      - persist_to_workspace:
+          root: ~/
           paths:
-            - /home/circleci/go/pkg/mod
-      - run:
-          name: Create the ~/artifacts directory if it doesn't exist
-          command: mkdir -p ~/artifacts
-      - run:
-          name: Build executables
-          command: go build -o ~/artifacts ./...
-      - store_artifacts:
-          path: ~/artifacts
-          destination: executables
-  deploy:
-    # This is an example deploy job, not actually used by the workflow
-    docker:
-      - image: cimg/base:stable
+            - docker-cache
+
+  # Test with docker-compose
+  test-docker-compose:
+    executor: docker-compose
     steps:
-      # Replace this with steps to deploy to users
+      - checkout:
+          path: ~/project/pki-mtls
+      - attach_workspace:
+          at: ~/project/pki-mtls/pki-go
+      - attach_workspace:
+          at: ~/
       - run:
-          name: deploy
-          command: '#e.g. ./deploy.sh'
+          name: Load Docker images
+          command: |
+            docker load -i ~/docker-cache/server.tar
+            docker load -i ~/docker-cache/client.tar
+            docker images | grep "sirajudheenam/go-mtls"
+      - run:
+          name: Determine version
+          command: |
+            if git describe --tags --exact-match 2>/dev/null; then
+              SEMANTIC_VERSION=$(git describe --tags --exact-match | sed 's/^v//')
+            else
+              SEMANTIC_VERSION="1.0.0"
+            fi
+            echo "export VERSION=${SEMANTIC_VERSION}" >> $BASH_ENV
+      - run:
+          name: Set environment variables
+          command: |
+            echo 'export SERVER_NAME=go-mtls-server-service' >> $BASH_ENV
+            echo 'export SERVER_PORT=8443' >> $BASH_ENV
+            echo 'export SERVER_ROOT_PATH=/hello' >> $BASH_ENV
+            echo 'export CERT_BASE_DIR=./certs' >> $BASH_ENV
+            echo 'export SERVER_CERT_SUB_DIR=server' >> $BASH_ENV
+            echo 'export CLIENT_CERT_SUB_DIR=client' >> $BASH_ENV
+      - run:
+          name: Start services with docker-compose
+          command: make up
+      - run:
+          name: Wait for services to be healthy
+          command: |
+            sleep 10
+            docker compose ps
+      - run:
+          name: Check server logs
+          command: docker compose logs server
+      - run:
+          name: Stop services
+          command: make down
+
+  # Push Docker images (only on main branch)
+  push-docker-images:
+    executor: docker-compose
+    steps:
+      - checkout:
+          path: ~/project/pki-mtls
+      - attach_workspace:
+          at: ~/
+      - run:
+          name: Load Docker images
+          command: |
+            docker load -i ~/docker-cache/server.tar
+            docker load -i ~/docker-cache/client.tar
+            docker images | grep "sirajudheenam/go-mtls"
+      - run:
+          name: Determine version
+          command: |
+            if git describe --tags --exact-match 2>/dev/null; then
+              SEMANTIC_VERSION=$(git describe --tags --exact-match | sed 's/^v//')
+            else
+              SEMANTIC_VERSION="1.0.0"
+            fi
+            echo "export SEMANTIC_VERSION=${SEMANTIC_VERSION}" >> $BASH_ENV
+            echo "export GIT_SHA=${CIRCLE_SHA1:0:7}" >> $BASH_ENV
+      - run:
+          name: Login to Docker Hub
+          command: echo "$DOCKERHUB_PASSWORD" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
+      - run:
+          name: Push Docker images with all tags
+          command: |
+            # Push semantic version
+            echo "==> Pushing semantic version ${SEMANTIC_VERSION}"
+            docker push sirajudheenam/go-mtls-server:${SEMANTIC_VERSION}
+            docker push sirajudheenam/go-mtls-client:${SEMANTIC_VERSION}
+
+            # Push git SHA
+            echo "==> Pushing git SHA ${GIT_SHA}"
+            docker push sirajudheenam/go-mtls-server:${GIT_SHA}
+            docker push sirajudheenam/go-mtls-client:${GIT_SHA}
+
+            # Push latest
+            echo "==> Pushing latest"
+            docker push sirajudheenam/go-mtls-server:latest
+            docker push sirajudheenam/go-mtls-client:latest
+
+            echo "✅ All tags pushed successfully"
+
 workflows:
-  build-and-test:
+  version: 2
+  build-test-deploy:
     jobs:
-      - test-go
-      - build-go-executables:
+      - generate-certs
+      - lint:
           requires:
-            - test-go
-    # - deploy:
-    #     requires:
-    #       - build-go-executables
+            - generate-certs
+      - security-scan:
+          requires:
+            - generate-certs
+      - test:
+          requires:
+            - generate-certs
+      - build-docker-images:
+          requires:
+            - test
+            - lint
+            - security-scan
+      - test-docker-compose:
+          requires:
+            - build-docker-images
+      - push-docker-images:
+          requires:
+            - test-docker-compose
+          filters:
+            branches:
+              only: main
+          context:
+            - docker-hub-creds

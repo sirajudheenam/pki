@@ -5,6 +5,9 @@ WORKDIR /app
 
 COPY . .
 
+# RUN go mod init github.com/sirajudheenam/pki-mtls/pki-go
+# RUN go mod tidy
+
 # Build client binary
 RUN go build -o client cmd/client/main.go
 

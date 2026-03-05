@@ -1,12 +1,13 @@
 # Makefile
+BUILD_VERSION ?= 1.0.0
 VERSION ?= 1.0.0
 DOCKER_USER = sirajudheenam
 IMAGES = server client
 IMAGE_PREFIX = go-mtls-
 ## go-mtls-server-service
-HOSTNAME ?= localhost
-CERT_BASE_DIR = certs
+SERVER_NAME ?= go-mtls-server-service
 SERVER_PORT ?= 8443
+CERT_BASE_DIR = certs
 GO_FILES = $(shell find . -type f -name '*.go')
 # Additional
 PKI_VERSION=local
@@ -17,13 +18,13 @@ CLIENT_CERT_SUB_DIR=client
 
 .PHONY: all build test tag push release clean cert-gen cert-clean run-server run-client help
 
-all: test build tag
+all: lint gosec test release
 
-## Generate certificates for the given hostname (default: localhost)
+## Generate certificates for the given SERVER_NAME (default: localhost)
 cert-gen:
-	@echo "🔐 Generating certificates for $(HOSTNAME)..."
-# 	@mkdir -p $(CERT_BASE_DIR)/$(HOSTNAME)/{ca,server,client}
-	@cd .. && bash scripts/create-certs.sh all $(HOSTNAME)
+	@echo "🔐 Generating certificates for $(SERVER_NAME)..."
+# 	@mkdir -p $(CERT_BASE_DIR)/$(SERVER_NAME)/{ca,server,client}
+	@cd .. && bash scripts/create-certs.sh all $(SERVER_NAME)
 	@echo "✅ Certificates generated in $(CERT_BASE_DIR) directory"
 
 ## Remove all generated certificates
@@ -34,19 +35,19 @@ cert-clean:
 
 ## Run server locally
 run-server: cert-gen
-	@echo "🚀 Starting server on port $(SERVER_PORT) for $(HOSTNAME)..."
-	HOSTNAME=$(HOSTNAME) \
+	@echo "🚀 Starting server on port $(SERVER_PORT) for $(SERVER_NAME)..."
+	SERVER_NAME=$(SERVER_NAME) \
 	PORT=$(SERVER_PORT) \
 	CERT_BASE_DIR=$(CERT_BASE_DIR) \
 	go run cmd/server/main.go
 
 ## Run client locally
 run-client: cert-gen
-	@echo "🔄 Starting client for $(HOSTNAME)..."
-	SERVER_NAME=$(HOSTNAME) \
+	@echo "🔄 Starting client for $(SERVER_NAME)..."
+	SERVER_NAME=$(SERVER_NAME) \
 	SERVER_PORT=$(SERVER_PORT) \
 	SERVER_ROOT_PATH=$(SERVER_ROOT_PATH) \
-	CLIENT_CERTS=$(CERT_BASE_DIR)/$(HOSTNAME)/$(CLIENT_CERT_SUB_DIR) \
+	CLIENT_CERTS=$(CERT_BASE_DIR)/$(SERVER_NAME)/$(CLIENT_CERT_SUB_DIR) \
 	go run cmd/client/main.go
 
 ## Run tests with coverage
@@ -99,7 +100,7 @@ build:
 tag:
 	@for img in $(IMAGES); do \
 		echo "==> Tagging $(IMAGE_PREFIX)$$img:latest"; \
-		docker tag $(DOCKER_USER)/$(IMAGE_PREFIX)$$img:$(VERSION) $(DOCKER_USER)/$(IMAGE_PREFIX)$$img:latest ; \
+		docker tag $(DOCKER_USER)/$(IMAGE_PREFIX)$$img:$(VERSION) $(DOCKER_USER)/$(IMAGE_PREFIX)$$img:$(BUILD_VERSION) $(DOCKER_USER)/$(IMAGE_PREFIX)$$img:latest 
 	done
 
 ## Push both version and latest
@@ -142,7 +143,7 @@ logs:
 ## Show help
 help:
 	@echo "Available targets:"
-	@echo "  cert-gen     - Generate certificates for given HOSTNAME (default: localhost)"
+	@echo "  cert-gen     - Generate certificates for given SERVER_NAME (default: localhost)"
 	@echo "  cert-clean   - Remove all generated certificates"
 	@echo "  run-server   - Run server locally (generates certs if needed)"
 	@echo "  run-client   - Run client locally (generates certs if needed)"
@@ -158,6 +159,6 @@ help:
 	@echo "  logs        - Show service logs"
 	@echo
 	@echo "Variables:"
-	@echo "  HOSTNAME    - Target hostname for certificates (default: localhost)"
-	@echo "  VERSION     - Image version tag (default: 1.0.2)"
+	@echo "  SERVER_NAME    - Target server_name for certificates (default: localhost)"
+	@echo "  VERSION     - Image version tag (default: 1.0.0)"
 	@echo "  SERVER_PORT - Server port (default: 8443)"

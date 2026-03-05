@@ -24,13 +24,13 @@ C  = DE
 ST = Berlin
 L  = Berlin
 O  = DemoCA
-CN = localhost   # NEW: dynamic CN
+CN = go-mtls-server-service   # NEW: dynamic CN
 
 [ req_ext ]
 subjectAltName = @alt_names
 
 [ alt_names ]
-DNS.1 = localhost
+DNS.1 = go-mtls-server-service
 DNS.2 = localhost   # NEW: allow both host and localhost
 
 [ v3_ca ]

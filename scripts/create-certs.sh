@@ -3,14 +3,14 @@
 
 set -e
 
-HOSTNAME=${2:-localhost}    # NEW: second argument for hostname
+SERVER_NAME=${2:-go-mtls-server-service}    # NEW: second argument for hostname
 cd ..
 BASE_DIR="demo-pki"         # NEW: base PKI folder
-PKI_DIR="$(pwd)/$BASE_DIR/$HOSTNAME"  # NEW: certificates per-host
+PKI_DIR="$(pwd)/$BASE_DIR/$SERVER_NAME"  # NEW: certificates per-host
 
 # TEST SERVER folder
-TEST_SERVER_DIR="pki-go/certs/$HOSTNAME/server"
-TEST_CLIENT_DIR="pki-go/certs/$HOSTNAME/client"
+TEST_SERVER_DIR="pki-go/certs/$SERVER_NAME/server"
+TEST_CLIENT_DIR="pki-go/certs/$SERVER_NAME/client"
 
 
 create_dir_structure() {
@@ -57,13 +57,13 @@ C  = DE
 ST = Berlin
 L  = Berlin
 O  = DemoCA
-CN = $HOSTNAME   # NEW: dynamic CN
+CN = $SERVER_NAME   # NEW: dynamic CN
 
 [ req_ext ]
 subjectAltName = @alt_names
 
 [ alt_names ]
-DNS.1 = $HOSTNAME
+DNS.1 = $SERVER_NAME
 DNS.2 = localhost   # NEW: allow both host and localhost
 
 [ v3_ca ]
@@ -139,13 +139,13 @@ create_root_bundle() {
 }
 
 create_server_cert() {
-    echo "=== 3. Create Server Certificate for $HOSTNAME ==="
+    echo "=== 3. Create Server Certificate for $SERVER_NAME ==="
     openssl genrsa -out $PKI_DIR/server/server.key.pem 2048
     chmod 400 $PKI_DIR/server/server.key.pem
     
     openssl req -new -key $PKI_DIR/server/server.key.pem \
     -out $PKI_DIR/server/server.csr.pem \
-    -subj "/C=DE/ST=Berlin/L=Berlin/O=DemoServer/OU=IT/CN=$HOSTNAME" \
+    -subj "/C=DE/ST=Berlin/L=Berlin/O=DemoServer/OU=IT/CN=$SERVER_NAME" \
     -config $PKI_DIR/openssl.cnf -extensions req_ext
     
     openssl x509 -req -in $PKI_DIR/server/server.csr.pem \
@@ -154,7 +154,7 @@ create_server_cert() {
     -CAcreateserial -out $PKI_DIR/server/server.cert.pem \
     -days 825 -sha256 -extfile $PKI_DIR/openssl.cnf -extensions req_ext
     
-    echo "Server certificate created for $HOSTNAME"
+    echo "Server certificate created for $SERVER_NAME"
 }
 
 
