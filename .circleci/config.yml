@@ -22,8 +22,23 @@ jobs:
           name: Install bash for cert generation
           command: sudo apt-get update && sudo apt-get install -y bash openssl
       - run:
-          name: Generate certificates
-          command: make cert-gen SERVER_NAME=go-mtls-server-service
+          name: Generate certificates using script directly
+          command: |
+            cd ~/project/pki-mtls
+            bash scripts/create-certs.sh all go-mtls-server-service
+      - run:
+          name: Verify certificates were created
+          command: |
+            echo "==> Checking for certificates:"
+            ls -la ~/project/pki-mtls/pki-go/
+            if [ -d "~/project/pki-mtls/pki-go/certs" ]; then
+              echo "==> Certs directory contents:"
+              find ~/project/pki-mtls/pki-go/certs -type f -name "*.pem" | head -20
+            else
+              echo "ERROR: certs directory not found"
+              echo "==> Searching for certs:"
+              find ~/project/pki-mtls -type d -name "certs" 2>/dev/null
+            fi
       - persist_to_workspace:
           root: ~/project/pki-mtls/pki-go
           paths:
