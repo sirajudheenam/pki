@@ -4,12 +4,12 @@ executors:
   go-docker:
     docker:
       - image: cimg/go:1.26
-    working_directory: ~/project/pki-mtls/pki-go
+    working_directory: ~/project/pki-go
 
   docker-compose:
     machine:
       image: ubuntu-2204:2023.07.1
-    working_directory: ~/project/pki-mtls/pki-go
+    working_directory: ~/project/pki-go
 
 jobs:
   # Generate certificates needed for testing
@@ -17,30 +17,41 @@ jobs:
     executor: go-docker
     steps:
       - checkout:
-          path: ~/project/pki-mtls
+          path: ~/project
       - run:
           name: Install bash for cert generation
           command: sudo apt-get update && sudo apt-get install -y bash openssl
       - run:
-          name: Generate certificates using script directly
+          name: Generate certificates using Makefile
           command: |
-            cd ~/project/pki-mtls
-            bash scripts/create-certs.sh all go-mtls-server-service
+            cd ~/project/pki-go
+            make cert-gen SERVER_NAME=go-mtls-server-service
       - run:
           name: Verify certificates were created
           command: |
-            echo "==> Checking for certificates:"
-            ls -la ~/project/pki-mtls/pki-go/
-            if [ -d "~/project/pki-mtls/pki-go/certs" ]; then
-              echo "==> Certs directory contents:"
-              find ~/project/pki-mtls/pki-go/certs -type f -name "*.pem" | head -20
+            echo "==> Current directory: $(pwd)"
+            echo "==> Looking for certs directory:"
+            find ~/project -type d -name "certs" 2>/dev/null
+            echo ""
+            echo "==> Certificate files found:"
+            find ~/project -type f -name "*.pem" 2>/dev/null | head -20
+      - run:
+          name: Ensure certs are in correct location
+          command: |
+            # The script might create certs in the parent directory
+            # Copy them to the expected location if needed
+            if [ -d ~/project/pki-go/certs ]; then
+              echo "✅ Certs found at ~/project/pki-go/certs"
+              ls -la ~/project/pki-go/certs/
+            elif [ -d ~/pki-go/certs ]; then
+              echo "Moving certs from ~/pki-go/certs to ~/project/pki-go/certs"
+              cp -r ~/pki-go/certs ~/project/pki-go/
             else
-              echo "ERROR: certs directory not found"
-              echo "==> Searching for certs:"
-              find ~/project/pki-mtls -type d -name "certs" 2>/dev/null
+              echo "ERROR: Could not find certificates in expected locations"
+              exit 1
             fi
       - persist_to_workspace:
-          root: ~/project/pki-mtls/pki-go
+          root: ~/project/pki-go
           paths:
             - certs
 
@@ -49,7 +60,7 @@ jobs:
     executor: go-docker
     steps:
       - checkout:
-          path: ~/project/pki-mtls
+          path: ~/project
       - restore_cache:
           keys:
             - go-mod-v1-{{ checksum "go.sum" }}
@@ -74,7 +85,7 @@ jobs:
     executor: go-docker
     steps:
       - checkout:
-          path: ~/project/pki-mtls
+          path: ~/project
       - restore_cache:
           keys:
             - go-mod-v1-{{ checksum "go.sum" }}
@@ -94,9 +105,9 @@ jobs:
     executor: go-docker
     steps:
       - checkout:
-          path: ~/project/pki-mtls
+          path: ~/project
       - attach_workspace:
-          at: ~/project/pki-mtls/pki-go
+          at: ~/project/pki-go
       - restore_cache:
           keys:
             - go-mod-v1-{{ checksum "go.sum" }}
@@ -129,9 +140,9 @@ jobs:
     executor: docker-compose
     steps:
       - checkout:
-          path: ~/project/pki-mtls
+          path: ~/project
       - attach_workspace:
-          at: ~/project/pki-mtls/pki-go
+          at: ~/project/pki-go
       - run:
           name: Determine version from git tag
           command: |
@@ -181,9 +192,9 @@ jobs:
     executor: docker-compose
     steps:
       - checkout:
-          path: ~/project/pki-mtls
+          path: ~/project
       - attach_workspace:
-          at: ~/project/pki-mtls/pki-go
+          at: ~/project/pki-go
       - attach_workspace:
           at: ~/
       - run:
@@ -230,7 +241,7 @@ jobs:
     executor: docker-compose
     steps:
       - checkout:
-          path: ~/project/pki-mtls
+          path: ~/project
       - attach_workspace:
           at: ~/
       - run:
